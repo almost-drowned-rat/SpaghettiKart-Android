@@ -361,3 +361,72 @@ void Android_OpenModsManager() {
     env->DeleteLocalRef(activity);
 }
 } // namespace Ship
+
+// ---------------------------------------------------------------- FPS / frame time (the Back menu's readout)
+#include <algorithm>
+#include <chrono>
+#include <dlfcn.h>
+#include <mutex>
+// frame_stats.inc - frame statistics for the Back menu's FPS / frame time readout (TouchControls, FpsView): tick()
+// once per frame shown; read() gives fps, average and longest frame time (ms) of the last half second.
+namespace frame_stats {
+struct State {
+    std::mutex mutex;
+    int64_t last = 0, windowStart = 0;
+    int frames = 0;
+    double sum = 0, longest = 0;
+    float fps = 0, avg = 0, max = 0;
+};
+inline State& state() { static State s; return s; }
+inline int64_t nowNs() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+inline void tick() {
+    State& s = state();
+    const int64_t now = nowNs();
+    std::lock_guard<std::mutex> lock(s.mutex);
+    if (s.last != 0) {
+        const double dt = (now - s.last) / 1e6;
+        s.frames++;
+        s.sum += dt;
+        s.longest = std::max(s.longest, dt);
+    }
+    s.last = now;
+    if (s.windowStart == 0) s.windowStart = now;
+    if (now - s.windowStart >= 500000000LL && s.frames > 0) {
+        s.fps = static_cast<float>(s.frames * 1e9 / (now - s.windowStart));
+        s.avg = static_cast<float>(s.sum / s.frames);
+        s.max = static_cast<float>(s.longest);
+        s.frames = 0;
+        s.sum = s.longest = 0;
+        s.windowStart = now;
+    }
+}
+inline void read(float out[3]) {
+    State& s = state();
+    std::lock_guard<std::mutex> lock(s.mutex);
+    const bool stale = s.last == 0 || nowNs() - s.last > 1000000000LL;   // no frame for a second: 0 fps
+    out[0] = stale ? 0.0f : s.fps;
+    out[1] = s.avg;
+    out[2] = s.max;
+}
+} // namespace frame_stats
+
+// Every frame the game shows goes through SDL_GL_SwapWindow (libultraship's SDL backend). Defined here, it takes
+// libultraship's calls (static, in this library) before libSDL2.so's, counts the frame and hands on to SDL.
+extern "C" void SDL_GL_SwapWindow(SDL_Window* window) {
+    using Swap = void (*)(SDL_Window*);
+    static Swap real = reinterpret_cast<Swap>(dlsym(dlopen("libSDL2.so", RTLD_NOW | RTLD_NOLOAD), "SDL_GL_SwapWindow"));
+    frame_stats::tick();
+    if (real != nullptr) {
+        real(window);
+    }
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL Java_com_izzy_kart_TouchNative_nativeFrameStats(JNIEnv* env, jclass) {
+    float s[3];
+    frame_stats::read(s);
+    jfloatArray a = env->NewFloatArray(3);
+    env->SetFloatArrayRegion(a, 0, 3, s);
+    return a;
+}

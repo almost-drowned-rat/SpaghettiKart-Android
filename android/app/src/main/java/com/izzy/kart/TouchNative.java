@@ -8,4 +8,6 @@ final class TouchNative {
     static native void nativeTouchPad(int buttons, float x, float y);
     /** The game runs (libultraship's window exists). */
     static native boolean nativeGameRunning();
+    /** fps, average and longest frame time (ms) of the last half second (AndroidBridge.cpp). */
+    static native float[] nativeFrameStats();
 }
