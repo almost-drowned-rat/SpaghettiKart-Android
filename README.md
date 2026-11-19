@@ -36,10 +36,10 @@ and Vulkan. App ID `io.github.almostdrownedrat.spaghettikart` — it installs ne
 - **Back** (the back gesture, the system bar's back button or a handheld's own Back key) opens the menu over the
   game, fully usable with the controller (D-pad / stick, **A** choose, **B** back, holding the D-pad keeps moving):
   - **Back to the game**
-  - **Game settings and controller** — the game's own menu
-  - **Shader** / **Shader parameters** — RetroArch shaders (below)
-  - **FPS / frame time** — a small readout in the corner
   - **Touch controls** — mode, move and resize, size, single buttons, opacity, stick sensitivity, reset
+  - **Settings** — the game's own menu
+  - **Shaders** — RetroArch shaders (below)
+  - **FPS** — a small readout of the frame rate and frame time in the corner
   - **Exit game**
 
   With the game's menu open, Back (or **B**) closes it; the game stands still meanwhile. In the game's menu
@@ -49,12 +49,21 @@ and Vulkan. App ID `io.github.almostdrownedrat.spaghettikart` — it installs ne
 
 ## Shaders
 
-None are shipped: Back > **Shader** > **Import shader pack (.zip)** takes a slang shader pack such as
-[libretro/slang-shaders](https://github.com/libretro/slang-shaders)' "Download ZIP"; it is unpacked into the app's
-folder (`Android/data/io.github.almostdrownedrat.spaghettikart/files/shaders`) and its presets (`.slangp`) can be
-picked by folder. **Shader parameters** changes the active preset's settings. While a shader is in use the game
-draws into a buffer that goes through the shader onto the screen; switching between shaders applies at once, from
-Off to a shader at the next start.
+Back > **Shaders** has everything in one place:
+
+- **Shader** — On / Off (On takes the preset last used).
+- **Shader selection** — the folders and presets of the imported packs. None are shipped: **Import shader pack
+  (.zip)** takes a slang shader pack such as [libretro/slang-shaders](https://github.com/libretro/slang-shaders)'
+  "Download ZIP"; it is unpacked into the app's folder (`Android/data/io.github.almostdrownedrat.spaghettikart/files/shaders`).
+- **Shader resolution** — the picture the shader works on: **Original** (240 lines, as in RetroArch: the game draws
+  in its low resolution mode and the shader gets that picture - the look the shaders were made for, and the
+  lightest), **2x** (480 lines) or **Full** (the screen's size). While the game's own menu is open, the shader works
+  on the full picture so the menu stays readable.
+- **Shader parameters** — the active preset's settings (kept per preset).
+- **Import shader pack (.zip)**
+
+While a shader is in use the game draws into a buffer that goes through the shader onto the screen; switching
+between shaders applies at once, from Off to a shader at the next start.
 
 The race renders in 16:9 by default (wider view, not stretched); title and menu screens keep their 4:3 borders. For
 4:3 in the race too, set *Settings → Graphics → Force aspect ratio* to *Original (4:3)*.
