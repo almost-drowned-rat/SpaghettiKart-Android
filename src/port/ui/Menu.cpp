@@ -329,6 +329,55 @@ bool ModernMenuHeaderEntry(std::string label) {
     return pressed;
 }
 
+// Android version: the menu in the look of the N64Recomp ports' settings (DK64 Recompiled, DinoTale) - a dark rounded
+// panel, text tabs (the selected one gold and underlined, the gold of the Android menu Back opens) instead of
+// buttons, the sections as a second row of tabs instead of a sidebar, thin dividers instead of white bars.
+#ifdef __ANDROID__
+static constexpr bool kRecompLook = true;
+#else
+static constexpr bool kRecompLook = false;
+#endif
+static const ImVec4 kRecompAccent = ImVec4(0.91f, 0.69f, 0.29f, 1.0f);
+static const ImVec4 kRecompPanel = ImVec4(0.06f, 0.07f, 0.09f, 0.96f);
+static const ImVec4 kRecompLine = ImVec4(1.0f, 1.0f, 1.0f, 0.14f);
+
+static bool RecompTab(const std::string& label, bool selected, const char* idSuffix) {
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImVec2 pos = window->DC.CursorPos;
+    const ImGuiID id = window->GetID((label + idSuffix).c_str());
+    const char* end = ImGui::FindRenderedTextEnd(label.c_str());
+    ImVec2 labelSize = ImGui::CalcTextSize(label.c_str(), end, true);
+    ImRect bb = { pos, pos + labelSize + style.FramePadding * 2 };
+    ImGui::ItemSize(bb, style.FramePadding.y);
+    if (!ImGui::ItemAdd(bb, id)) {
+        return false;
+    }
+    bool hovered, held;
+    bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+    if (pressed) {
+        ImGui::MarkItemEdited(id);
+    }
+    if (hovered || held) {
+        window->DrawList->AddRectFilled(bb.Min, bb.Max, ImGui::GetColorU32(ImVec4(1, 1, 1, 0.06f)), 6.0f);
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text, selected ? kRecompAccent : hovered ? ImVec4(1, 1, 1, 1) : ImVec4(1, 1, 1, 0.6f));
+    UIWidgets::RenderText(pos + style.FramePadding, label.c_str(), end, true);
+    ImGui::PopStyleColor();
+    if (selected) {
+        window->DrawList->AddRectFilled(ImVec2(bb.Min.x + style.FramePadding.x, bb.Max.y - 4),
+                                        ImVec2(bb.Max.x - style.FramePadding.x, bb.Max.y - 1),
+                                        ImGui::GetColorU32(kRecompAccent), 1.5f);
+    }
+    ImGui::RenderNavCursor(bb, id);
+    return pressed;
+}
+
+static void RecompLine(ImDrawList* list, ImVec2 from, float width) {
+    list->AddRectFilled(from, from + ImVec2(width, 1.0f), ImGui::GetColorU32(kRecompLine));
+}
+
 uint32_t Menu::DrawSearchResults(std::string& menuSearchText) {
     auto menuThemeIndex = static_cast<UIWidgets::Colors>(CVarGetInteger("gSettings.Menu.Theme", defaultThemeIndex));
     ImGui::BeginChild("Search Results", ImVec2(0, 0), ImGuiChildFlags_NavFlattened);
@@ -672,7 +721,14 @@ void Menu::DrawElement() {
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), windowCond, { 0.5f, 0.5f });
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     }
-    if (!ImGui::Begin("Main Menu", NULL, windowFlags)) {
+    if (kRecompLook) {
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0.55f));
+    }
+    const bool menuOpen = ImGui::Begin("Main Menu", NULL, windowFlags);
+    if (kRecompLook) {
+        ImGui::PopStyleColor();
+    }
+    if (!menuOpen) {
         if (!popout) {
             ImGui::PopStyleVar();
         }
@@ -750,10 +806,20 @@ void Menu::DrawElement() {
 
     pos += window->WorkRect.GetSize() / 2 - menuSize / 2;
     ImGui::SetNextWindowPos(pos);
+    if (kRecompLook) {
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, kRecompPanel);
+        ImGui::PushStyleColor(ImGuiCol_Border, kRecompLine);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 14.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+    }
     ImGui::BeginChild("Menu Block", menuSize,
                       ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize |
-                          kMenuChildNav,
+                          kMenuChildNav | (kRecompLook ? ImGuiChildFlags_Borders : 0),
                       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+    if (kRecompLook) {
+        ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(2);
+    }
 
     std::unordered_map<std::string, SidebarEntry>* sidebar;
     float headerHeight = headerSizes.at(0).y + style.FramePadding.y * 2;
@@ -802,7 +868,7 @@ void Menu::DrawElement() {
         if (headerIndex != label) {
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
         }
-        if (ModernMenuHeaderEntry(entry.label)) {
+        if (kRecompLook ? RecompTab(entry.label, headerIndex == label, "##Header") : ModernMenuHeaderEntry(entry.label)) {
             if (headerSearch) {
                 menuSearch.Clear();
             }
@@ -865,8 +931,12 @@ void Menu::DrawElement() {
 
     pos.y += headerHeight + style.ItemSpacing.y;
     pos.x = centerX - menuSize.x / 2 + (style.ItemSpacing.x * (menuEntries.size() + 1));
-    window->DrawList->AddRectFilled(pos, pos + ImVec2{ menuSize.x, 4 }, ImGui::GetColorU32({ 255, 255, 255, 255 }),
-                                    true, style.WindowRounding);
+    if (kRecompLook) {
+        RecompLine(window->DrawList, pos, menuSize.x);
+    } else {
+        window->DrawList->AddRectFilled(pos, pos + ImVec2{ menuSize.x, 4 },
+                                        ImGui::GetColorU32({ 255, 255, 255, 255 }), true, style.WindowRounding);
+    }
     pos.y += style.ItemSpacing.y;
     // A line at the bottom: the controller buttons and "Reset page".
     const bool padHelp = MenuPad::Active();
@@ -895,43 +965,79 @@ void Menu::DrawElement() {
         }
         navInitPending = true;
     }
-    float sectionCenterX = pos.x + (sidebarWidth / 2);
     float topY = pos.y;
-    ImGui::SetNextWindowSizeConstraints({ sidebarWidth, 0 }, { sidebarWidth, columnHeight });
-    ImGui::BeginChild((menuEntries.at(headerIndex).label + " Section").c_str(), { sidebarWidth, columnHeight * 3 },
-                      ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize | kMenuChildNav,
-                      ImGuiWindowFlags_NoTitleBar);
-    for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
-        std::string nextIndex = "";
-        UIWidgets::PushStyleButton(menuThemeIndex);
-        if (sectionIndex != sidebarLabel) {
-            ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
-        }
-        if (ModernMenuSidebarEntry(sidebarLabel)) {
-            if (headerSearch) {
-                menuSearch.Clear();
+    if (kRecompLook) {
+        // the sections as a second row of tabs (L / R still switch them), under a thin line
+        float tabsHeight = ImGui::GetFontSize() + style.FramePadding.y * 2 + style.ScrollbarSize;
+        ImGui::SetNextWindowPos(pos + ImVec2(style.ItemSpacing.x * 2, 0));
+        ImGui::BeginChild((menuEntries.at(headerIndex).label + " Sections").c_str(),
+                          { menuSize.x - style.ItemSpacing.x * 4, tabsHeight }, kMenuChildNav,
+                          ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_HorizontalScrollbar);
+        bool first = true;
+        for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
+            if (!first) {
+                ImGui::SameLine();
             }
-            CVarSetString(sidebarCvar, sidebarLabel.c_str());
-            CVarSave();
-            nextIndex = sidebarLabel;
+            first = false;
+            if (RecompTab(sidebarLabel, sectionIndex == sidebarLabel, "##Sidebar")) {
+                if (headerSearch) {
+                    menuSearch.Clear();
+                }
+                CVarSetString(sidebarCvar, sidebarLabel.c_str());
+                CVarSave();
+                sectionIndex = sidebarLabel;
+            }
         }
-        if (sectionIndex != sidebarLabel) {
-            ImGui::PopStyleColor();
+        ImGui::EndChild();
+        ImGui::PushFont(GameEngine::Instance->fontMonoLarger);
+        pos.y += tabsHeight;
+        RecompLine(window->DrawList, pos, menuSize.x);
+        pos.y += style.ItemSpacing.y;
+        sectionHeight -= tabsHeight + style.ItemSpacing.y;
+        topY = pos.y;
+        columnHeight = sectionHeight - style.ItemSpacing.y * 4;
+        pos.x += style.ItemSpacing.x;
+        ImGui::SetNextWindowPos(pos + style.ItemSpacing);
+    } else {
+        float sectionCenterX = pos.x + (sidebarWidth / 2);
+        topY = pos.y;
+        ImGui::SetNextWindowSizeConstraints({ sidebarWidth, 0 }, { sidebarWidth, columnHeight });
+        ImGui::BeginChild((menuEntries.at(headerIndex).label + " Section").c_str(), { sidebarWidth, columnHeight * 3 },
+                          ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AlwaysAutoResize | kMenuChildNav,
+                          ImGuiWindowFlags_NoTitleBar);
+        for (auto& sidebarLabel : menuEntries.at(headerIndex).sidebarOrder) {
+            std::string nextIndex = "";
+            UIWidgets::PushStyleButton(menuThemeIndex);
+            if (sectionIndex != sidebarLabel) {
+                ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+            }
+            if (ModernMenuSidebarEntry(sidebarLabel)) {
+                if (headerSearch) {
+                    menuSearch.Clear();
+                }
+                CVarSetString(sidebarCvar, sidebarLabel.c_str());
+                CVarSave();
+                nextIndex = sidebarLabel;
+            }
+            if (sectionIndex != sidebarLabel) {
+                ImGui::PopStyleColor();
+            }
+            UIWidgets::PopStyleButton();
+            if (nextIndex != "") {
+                sectionIndex = nextIndex;
+            }
         }
-        UIWidgets::PopStyleButton();
-        if (nextIndex != "") {
-            sectionIndex = nextIndex;
-        }
-    }
-    ImGui::EndChild();
+        ImGui::EndChild();
 
-    ImGui::PushFont(GameEngine::Instance->fontMonoLarger);
-    pos = ImVec2{ sectionCenterX + (sidebarWidth / 2), topY } + style.ItemSpacing * 2;
-    window->DrawList->AddRectFilled(pos, pos + ImVec2{ 4, sectionHeight - style.FramePadding.y * 2 },
-                                    ImGui::GetColorU32({ 255, 255, 255, 255 }), true, style.WindowRounding);
-    pos.x += 4 + style.ItemSpacing.x;
-    ImGui::SetNextWindowPos(pos + style.ItemSpacing);
-    float sectionWidth = menuSize.x - sidebarWidth - 4 - style.ItemSpacing.x * 4;
+        ImGui::PushFont(GameEngine::Instance->fontMonoLarger);
+        pos = ImVec2{ sectionCenterX + (sidebarWidth / 2), topY } + style.ItemSpacing * 2;
+        window->DrawList->AddRectFilled(pos, pos + ImVec2{ 4, sectionHeight - style.FramePadding.y * 2 },
+                                        ImGui::GetColorU32({ 255, 255, 255, 255 }), true, style.WindowRounding);
+        pos.x += 4 + style.ItemSpacing.x;
+        ImGui::SetNextWindowPos(pos + style.ItemSpacing);
+    }
+    float sectionWidth = kRecompLook ? menuSize.x - style.ItemSpacing.x * 6
+                                     : menuSize.x - sidebarWidth - 4 - style.ItemSpacing.x * 4;
     std::string sectionMenuId = sectionIndex + " Settings";
     int columns = sidebar->at(sectionIndex).columnCount;
     size_t columnFuncs = sidebar->at(sectionIndex).columnWidgets.size();

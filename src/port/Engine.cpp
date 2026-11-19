@@ -1,4 +1,5 @@
 #include "Engine.h"
+#include "ui/UIWidgets.h"
 
 #include <cstdlib>
 #include "ship/utils/StringHelper.h"
@@ -96,6 +97,10 @@ GameEngine::GameEngine() {
     this->context->InitConfiguration();    // without this line InitConsoleVariables fails at Config::Reload()
     this->context->InitConsoleVariables(); // without this line the controldeck constructor failes in
                                            // ShipDeviceIndexMappingManager::UpdateControllerNamesFromConfig()
+#ifdef __ANDROID__
+    // Android version: grey menu widgets by default, to go with the recomp-style menu panel (ui/Menu.cpp).
+    CVarRegisterInteger("gSettings.Menu.Theme", UIWidgets::Colors::Gray);
+#endif
 
 #ifdef __ANDROID__
     // There is no windowed mode worth offering on a phone, so Settings ->
