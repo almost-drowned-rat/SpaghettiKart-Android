@@ -61,7 +61,12 @@ class MainActivity : SDLActivity() {
             TouchOverlay.Sink { b, x, y -> TouchNative.nativeTouchPad(b, x, y) },
             object : TouchControls.GameState {
                 override fun running() = TouchNative.nativeGameRunning()
-                override fun menuOpen() = menuOpen
+                override fun menuOpen() = runCatching { isMenuOpen() }.getOrDefault(false)
+                // the engine's menu toggles on Back (AC_BACK in SDL, see SpaghettiGui.cpp)
+                override fun openGameMenu() {
+                    onNativeKeyDown(KeyEvent.KEYCODE_BACK)
+                    onNativeKeyUp(KeyEvent.KEYCODE_BACK)
+                }
             })
     }
 

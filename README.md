@@ -10,13 +10,17 @@ What this version adds (details in [CHANGELOG.md](CHANGELOG.md)):
 - Upstream SpaghettiKart — branch `main` follows upstream, `android` is this port
 - App ID `io.github.almostdrownedrat.spaghettikart` ("SpaghettiKart") — installs next to other SpaghettiKart apps
 - **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the game
-  as a controller, so they can be remapped in the game's controller settings like any pad. The **controller icon**
-  at the top centre opens their settings: **Touch buttons Automatic / Always / Off** (Automatic hides them while a
+  as a controller, so they can be remapped in the game's controller settings like any pad. Their settings are under
+  **Touch controls** in the menu (Back, or the **controller icon** at the top centre): **Touch buttons Automatic /
+  Always / Off** (Automatic hides them while a
   controller is used and a touch brings them back — on a handheld you normally never see them), move and resize,
   button size, show / hide single buttons, opacity, stick sensitivity, reset. Touches off the buttons still work
   as a mouse in the menus. The **Mods** button (to the mods and saves managers) is shown while the menu is open
-- Options menu on Android's **Back**: swipe from the edge to bring up the system bar and tap back (or use the back
-  gesture); **B** closes it too. The game stands still while the menu is open
+- **Back** (swipe from the edge to show the system bar and tap back, or the back gesture) opens
+  the menu in game — the same in all of this fork's Android ports and fully usable with the controller (D-pad /
+  stick, **A** choose, **B** back): **Back to the game**, **Game settings and controller** (the game's own menu,
+  where the controller is set up) and **Touch controls**. With the game's menu open, Back closes it; **B** closes it too. The game stands
+  still while the game's menu is open
 - Menu fully usable with the controller: D-pad / stick move, **A** select, **B** back / close, **L / R** section,
   **ZL / ZR** tab, **Left / Right** change a slider by one step, **Y** reset the selected setting to its default.
   Every setting has a reset button (orange when changed), and **Reset page** resets a whole page
