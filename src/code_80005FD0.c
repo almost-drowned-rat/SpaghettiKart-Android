@@ -118,7 +118,6 @@ u16 D_8016334C[8]; // Increased from 2 to 8 to prevent array overflow.
 u16 gSpeedCPUBehaviour[12];
 s32 D_80163368[4];
 s32 gIncrementUpdatePlayer;
-s32 D_8016337C;
 s16 gCurrentPlayerLookAhead[12];
 s16 D_80163398[12];
 s16 D_801633B0[12];
@@ -1201,14 +1200,14 @@ bool func_800088D8(s32 playerId, s16 lapNum, s16 arg2) {
     s32 progress;
     f32 interp;
     s16 var_t1;
-    u16* var_a0_3;
+    UNUSED u16* var_a0_3;
     s16 temp;
     s16 temp2;
     s32 i;
     s32 var_a0;
     s16 var_v0;
     s16 var_a0_4;
-    s32* var_v1;
+    UNUSED s32* var_v1;
     s16 STEMP_V1;
     s16 STEMP_V0;
     s16 rank;
@@ -1554,9 +1553,9 @@ void update_player_path_completion(s32 playerId, Player* player) {
 }
 
 void update_vehicles(void) {
-    s32 i;
+    UNUSED s32 i;
     generate_player_smoke();
-    D_8016337C++;
+    // D_8016337C++;
 
     // CM_TickBombKarts();
     // CM_VehiclesTick();
@@ -3465,8 +3464,8 @@ void init_course_path_point(void) {
         if (D_80163368[i] >= 2) {
             load_track_path(i);
             calculate_track_boundaries(i);
-            analyze_track_section(i);
-            analyse_angle_path(i);
+            analyze_track_sections(i);
+            analyze_path_angle(i);
             analyze_curved_path(i);
         }
     }
@@ -3623,7 +3622,7 @@ void init_players(void) {
     D_8016435C = 1;
     gBestRankedHumanPlayer = 0;
     gIncrementUpdatePlayer = 0;
-    D_8016337C = 0;
+    gTickCounter = 0; // Originally D_8016337C = 0;
     gPathStartZ = (f32) gTrackPaths[0][0].z; // [i][2]
     D_801634F0 = 0;
     D_801634F4 = 0;
@@ -3802,7 +3801,7 @@ f32 calculate_track_curvature(s32 pathIndex, u16 waypointIndex) {
     return -((temp_f10 * temp_f10_2) - (temp_f8_2 * temp_f8)) / (root2 * root1);
 }
 
-void analyze_track_section(s32 pathIndex) {
+void analyze_track_sections(s32 pathIndex) {
     f64 sectionCurvature;
     UNUSED s32 pad;
     s32 k;
@@ -3877,7 +3876,7 @@ s16 calculate_angle_path(s32 pathIndex, s32 waypointIndex) {
 }
 
 // Populates gPathExpectedRotation
-void analyse_angle_path(s32 pathIndex) {
+void analyze_path_angle(s32 pathIndex) {
     s32 waypointIndex;
     u16* angle;
 
@@ -4181,9 +4180,6 @@ void cpu_behaviour_start(s32 playerId, Player* player) {
     s16 pathPointStart;
     s16 pathPointEnd;
     s32 behaviourType;
-    UNUSED s32 test;
-
-    CPUBehaviour* beh = (CPUBehaviour*) LOAD_ASSET(CM_GetProps()->AIBehaviour);
 
     sCurrentCPUBehaviour = &((CPUBehaviour*) LOAD_ASSET(CM_GetProps()->AIBehaviour))[gCurrentCPUBehaviourId[playerId]];
 
@@ -5906,13 +5902,13 @@ void func_80016C3C(UNUSED s32 playerId, UNUSED f32 arg1, s32 cameraId) {
 
 void func_80017054(Camera* camera, UNUSED Player* player, UNUSED s32 index, s32 cameraId);
 void func_80017054(Camera* camera, UNUSED Player* player, UNUSED s32 index, s32 cameraId) {
-    s32 stackPadding0;
-    s32 stackPadding1;
+    UNUSED s32 stackPadding0;
+    UNUSED s32 stackPadding1;
     f32 spAC;
     f32 spA8;
     f32 spA4;
-    s32 stackPadding2;
-    s32 stackPadding3;
+    UNUSED s32 stackPadding2;
+    UNUSED s32 stackPadding3;
     f32 camX;
     f32 camY;
     f32 camZ;
@@ -5922,8 +5918,8 @@ void func_80017054(Camera* camera, UNUSED Player* player, UNUSED s32 index, s32 
     f32 diffX;
     f32 diffY;
     f32 diffZ;
-    s32 stackPadding7;
-    s32 stackPadding8;
+    UNUSED s32 stackPadding7;
+    UNUSED s32 stackPadding8;
     s16 waypoint1;
     s16 waypoint2;
     f32 stackPadding9;
@@ -6633,7 +6629,6 @@ void func_80019C50(s32 arg0) {
 void look_behind_toggle(s32 cameraIdx) {
     static bool lookBehindActive[NUM_CAMERAS] = {0};
     bool pressed = gControllers[cameraIdx].button & L_CBUTTONS; // button held
-    Camera* camera = &cameras[cameraIdx];
     ScreenContext* screenCtx = NULL;
 
     if (CVarGetInteger("gLookBehind", false) == false) {
@@ -7336,7 +7331,7 @@ void cpu_use_item_strategy(s32 playerId) {
 
                 if (player->currentRank < highestHumanRank) {
                     // Code for backwards firing is the same for CPUs and humans
-                    Vec3f somePos2;
+                    UNUSED Vec3f somePos2;
                     Vec3f somePosVel;
                     f32 var_f2;
 
