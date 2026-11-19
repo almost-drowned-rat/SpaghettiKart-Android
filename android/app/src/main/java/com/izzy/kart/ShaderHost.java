@@ -23,12 +23,17 @@ final class ShaderHost {
     /** The .slangp to draw with; "" for none. */
     static native void nativeSetPreset(String path);
     static native boolean nativeCompiling();
+    /** The preset's parameters, one per line: name, description, value, min, max, step (tabs). */
+    static native String nativeParams();
+    static native void nativeSetParam(String name, float value);
 
     /** For ShaderLibrary: a choice is used at once while the presenter runs (from "Off": at the next start). */
     static final ShaderLibrary.Target TARGET = new ShaderLibrary.Target() {
         @Override public boolean live() { return active; }
         @Override public void use(String path) { nativeSetPreset(path); }
         @Override public boolean compiling() { return active && nativeCompiling(); }
+        @Override public String params() { return active ? nativeParams() : ""; }
+        @Override public void setParam(String name, float value) { if (active) nativeSetParam(name, value); }
     };
 
     /** From the activity's createSDLSurface: whether this run draws through the presenter (a shader was chosen). */
@@ -42,7 +47,11 @@ final class ShaderHost {
     /** After the surface exists: hands the chosen preset to the presenter. */
     static void applyChosen(Context c) {
         if (active) {
-            try { nativeSetPreset(ShaderLibrary.chosen(c)); } catch (Throwable ignored) { }
+            try {
+                String p = ShaderLibrary.chosen(c);
+                nativeSetPreset(p);
+                ShaderLibrary.applySaved(c, TARGET, p);
+            } catch (Throwable ignored) { }
         }
     }
 }

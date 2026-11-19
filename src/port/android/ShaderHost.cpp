@@ -98,6 +98,10 @@ struct Libra {
     PFN_libra_error_write errorWrite = nullptr;
     PFN_libra_error_free_string errorFreeString = nullptr;
     PFN_libra_error_free errorFree = nullptr;
+    PFN_libra_preset_get_runtime_params getParams = nullptr;
+    PFN_libra_preset_free_runtime_params freeParams = nullptr;
+    PFN_libra_preset_set_param presetSetParam = nullptr;
+    PFN_libra_vk_filter_chain_set_param chainSetParam = nullptr;
 } libra;
 
 bool loadLibra() {
@@ -120,6 +124,10 @@ bool loadLibra() {
     LOAD(errorWrite, "libra_error_write");
     LOAD(errorFreeString, "libra_error_free_string");
     LOAD(errorFree, "libra_error_free");
+    LOAD(getParams, "libra_preset_get_runtime_params");
+    LOAD(freeParams, "libra_preset_free_runtime_params");
+    LOAD(presetSetParam, "libra_preset_set_param");
+    LOAD(chainSetParam, "libra_vk_filter_chain_set_param");
 #undef LOAD
     libra.loaded = libra.abiVersion && libra.presetCreate && libra.presetFree && libra.chainCreate && libra.chainFrame &&
                    libra.chainFree && libra.errorWrite && libra.errorFreeString && libra.errorFree &&
@@ -142,6 +150,12 @@ std::string libraError(libra_error_t error) {
 }
 
 // ---------------------------------------------------------------- state
+
+// A shader parameter (#pragma parameter) of the preset in use.
+struct Param {
+    std::string name, description;
+    float initial, minimum, maximum, step;
+};
 
 struct Imported {
     VkImage image = VK_NULL_HANDLE;
@@ -189,6 +203,9 @@ struct Host {
     bool chainFailed = false;
     libra_vk_filter_chain_t chain = nullptr;
     size_t frameCount = 0;
+    std::vector<Param> params;                          // of the built preset
+    std::unordered_map<std::string, float> overrides;   // values the player set (for H.preset)
+    bool overridesDirty = false;
 } H;
 
 // True while a preset is being built (the Java side shows its progress dialog meanwhile; read without the mutex).
@@ -489,6 +506,25 @@ void updateChain() {
         H.chainFailed = true;
         return;
     }
+    H.params.clear();
+    if (libra.getParams != nullptr) {
+        libra_preset_param_list_t list = {};
+        if (libra.getParams(&preset, &list) == nullptr) {
+            for (uint64_t i = 0; i < list.length; i++) {
+                const libra_preset_param_t& p = list.parameters[i];
+                H.params.push_back({ p.name ? p.name : "", p.description ? p.description : "", p.initial, p.minimum,
+                                     p.maximum, p.step });
+            }
+            libra.freeParams(list);
+        }
+    }
+    for (const auto& [name, value] : H.overrides) {   // the player's values from the start
+        if (libra.presetSetParam != nullptr) {
+            libra_error_t e = libra.presetSetParam(&preset, name.c_str(), value);
+            if (e != nullptr) libraError(e);
+        }
+    }
+    H.overridesDirty = false;
     libra_device_vk_t vk = {};
     vk.physical_device = H.physical;
     vk.instance = H.instance;
@@ -564,6 +600,13 @@ void present(AImageReader* reader) {
             destroySwapchain();
         } else if (acquired == VK_SUCCESS || acquired == VK_SUBOPTIMAL_KHR) {
             updateChain();
+            if (H.chain != nullptr && H.overridesDirty && libra.chainSetParam != nullptr) {
+                for (const auto& [name, value] : H.overrides) {
+                    libra_error_t e = libra.chainSetParam(&H.chain, name.c_str(), value);
+                    if (e != nullptr) libraError(e);
+                }
+                H.overridesDirty = false;
+            }
             const uint32_t foreign = H.foreignQueue ? VK_QUEUE_FAMILY_FOREIGN_EXT : VK_QUEUE_FAMILY_EXTERNAL;
             VkImage output = H.swapImages[index];
             vkResetCommandBuffer(H.cmd, 0);
@@ -730,10 +773,40 @@ JNIEXPORT jboolean JNICALL SH_JNI(nativeCompiling)(JNIEnv*, jclass) {
 JNIEXPORT void JNICALL SH_JNI(nativeSetPreset)(JNIEnv* env, jclass, jstring path) {
     const char* p = path != nullptr ? env->GetStringUTFChars(path, nullptr) : nullptr;
     std::lock_guard<std::mutex> lock(H.mutex);
-    H.preset = p != nullptr ? p : "";
+    std::string next = p != nullptr ? p : "";
+    if (next != H.preset) {
+        H.overrides.clear();
+        H.params.clear();
+        H.builtPreset = "\x01";   // build again, also when it comes back to the one built (Reset to defaults)
+    }
+    H.preset = next;
     if (p != nullptr) {
         env->ReleaseStringUTFChars(path, p);
     }
+}
+
+// The parameters of the preset in use, one per line: name, description, value, min, max, step (tab separated);
+// empty while there is none (or it is still being built).
+JNIEXPORT jstring JNICALL SH_JNI(nativeParams)(JNIEnv* env, jclass) {
+    std::lock_guard<std::mutex> lock(H.mutex);
+    std::string out;
+    char num[160];
+    for (const Param& p : H.params) {
+        auto it = H.overrides.find(p.name);
+        float v = it != H.overrides.end() ? it->second : p.initial;
+        snprintf(num, sizeof num, "\t%g\t%g\t%g\t%g\n", v, p.minimum, p.maximum, p.step);
+        out += p.name + "\t" + p.description + num;
+    }
+    return env->NewStringUTF(out.c_str());
+}
+
+// One parameter's value (kept for the preset in use; applied from the next frame).
+JNIEXPORT void JNICALL SH_JNI(nativeSetParam)(JNIEnv* env, jclass, jstring name, jfloat value) {
+    const char* n = env->GetStringUTFChars(name, nullptr);
+    std::lock_guard<std::mutex> lock(H.mutex);
+    H.overrides[n] = value;
+    H.overridesDirty = true;
+    env->ReleaseStringUTFChars(name, n);
 }
 
 } // extern "C"
