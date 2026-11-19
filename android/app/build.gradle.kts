@@ -40,11 +40,11 @@ android {
     ndkVersion = "30.0.15729638"
 
     defaultConfig {
-        applicationId = "com.izzy.kart.handheld"
+        applicationId = "io.github.almostdrownedrat.spaghettikart"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.2"
+        versionCode = 10
+        versionName = "0.3.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")

@@ -190,6 +190,12 @@ GameEngine::GameEngine() {
     gui->AddGuiWindow(std::make_shared<LUS::InputEditorWindow>(CVAR_CONTROLLER_CONFIGURATION_WINDOW_OPEN, "Input Editor"));
     gui->AddGuiWindow(std::make_shared<LUS::GfxDebuggerWindow>(CVAR_GFX_DEBUGGER_WINDOW_OPEN, "GfxDebuggerWindow", ImVec2(520, 600)));
 
+    // A fresh install has no logs/ folder and spdlog does not create it here: the log file fails to open, Init()
+    // stops right at InitLogging and the game crashes on the missing logger below (Odin 2 Portal, first start).
+    {
+        std::error_code logDirErr;
+        std::filesystem::create_directories(Ship::Context::GetPathRelativeToAppDirectory("logs"), logDirErr);
+    }
     this->context->Init({assets_path}, {}, 3, { 26800, 512, 1100 }, wnd, controlDeck);
 
 #ifndef __SWITCH__

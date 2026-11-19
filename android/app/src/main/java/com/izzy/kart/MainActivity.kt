@@ -5,7 +5,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -18,18 +20,22 @@ import org.libsdl.app.SDLActivity
 /**
  * The game itself.
  *
- * Handheld fork: there is no on-screen controller — the game is played with the
- * device's built-in controller, and touch still works as a mouse in the menus.
- * The only thing drawn over the SDL surface is the button to the mods and saves
- * manager, shown while libultraship's menu is open.
+ * Over the SDL surface: the touch buttons (TouchControls / TouchOverlay; Automatic
+ * hides them while a controller is used, the icon at the top centre opens their
+ * settings), and the button to the mods and saves manager, shown while
+ * libultraship's menu is open. Touches off the buttons still work as a mouse in
+ * the menus.
  *
  * [LauncherActivity] guarantees mk64.o2r exists before this activity starts.
  */
 class MainActivity : SDLActivity() {
 
     private lateinit var modsButton: Button
+    private lateinit var modsOverlay: View
 
     private var menuOpen = false
+
+    private var touch: TouchControls? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private val menuWatcher = object : Runnable {
@@ -51,7 +57,22 @@ class MainActivity : SDLActivity() {
         super.onCreate(savedInstanceState)
         fillScreen()
         setupModsOverlay()
+        touch = TouchControls(this, findViewById(android.R.id.content),
+            TouchOverlay.Sink { b, x, y -> TouchNative.nativeTouchPad(b, x, y) },
+            object : TouchControls.GameState {
+                override fun running() = TouchNative.nativeGameRunning()
+                override fun menuOpen() = menuOpen
+            })
     }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        touch?.onKey(event) == true || super.dispatchKeyEvent(event)
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
+        touch?.onMotion(event) == true || super.dispatchGenericMotionEvent(event)
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean =
+        touch?.onTouch(event) == true || super.dispatchTouchEvent(event)
 
     override fun onResume() {
         super.onResume()
@@ -61,6 +82,7 @@ class MainActivity : SDLActivity() {
         syncMenuState()
         handler.removeCallbacks(menuWatcher)
         handler.postDelayed(menuWatcher, MENU_POLL_MS)
+        touch?.onResume()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -118,11 +140,13 @@ class MainActivity : SDLActivity() {
 
     override fun onPause() {
         handler.removeCallbacks(menuWatcher)
+        touch?.onPause()
         super.onPause()
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(menuWatcher)
+        touch?.destroy()
         super.onDestroy()
     }
 
@@ -152,6 +176,7 @@ class MainActivity : SDLActivity() {
             )
         }
         findViewById<ViewGroup>(android.R.id.content).addView(overlay)
+        modsOverlay = overlay
 
         modsButton = overlay.findViewById(R.id.buttonMods)
         modsButton.setOnClickListener { startActivity(Intent(this, ModsActivity::class.java)) }

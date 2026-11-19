@@ -1,14 +1,20 @@
-# SpaghettiKart Handheld — Mario Kart 64 for Android handhelds (single screen)
+# SpaghettiKart — Android
 
-Fork of [izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart), the Android port of
-[SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart) (the Mario Kart 64 PC port), for Android handhelds
-with a built-in controller. Tested on the **AYN Odin 2 Portal** (1920×1080, Android 13).
+Android version of [SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart) (the Mario Kart 64 PC port),
+kept as a direct fork of it so upstream changes merge straight in. It started from
+[izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart), the original Android port. Made for Android
+handhelds with a built-in controller and phones alike. Tested on the **AYN Odin 2 Portal** (1920×1080, Android 13).
 
-What this fork changes (details in [CHANGELOG.md](CHANGELOG.md)):
+What this version adds (details in [CHANGELOG.md](CHANGELOG.md)):
 
-- Own app ID `com.izzy.kart.handheld` ("SpaghettiKart Handheld") — installs next to the original app
-- No on-screen controller — play with the built-in controller; touch still works as a mouse in the menus. Only
-  the **Mods** button (to the mods and saves managers) is shown while the menu is open
+- Upstream SpaghettiKart — branch `main` follows upstream, `android` is this port
+- App ID `io.github.almostdrownedrat.spaghettikart` ("SpaghettiKart") — installs next to other SpaghettiKart apps
+- **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the game
+  as a controller, so they can be remapped in the game's controller settings like any pad. The **controller icon**
+  at the top centre opens their settings: **Touch buttons Automatic / Always / Off** (Automatic hides them while a
+  controller is used and a touch brings them back — on a handheld you normally never see them), move and resize,
+  button size, show / hide single buttons, opacity, stick sensitivity, reset. Touches off the buttons still work
+  as a mouse in the menus. The **Mods** button (to the mods and saves managers) is shown while the menu is open
 - Options menu on Android's **Back**: swipe from the edge to bring up the system bar and tap back (or use the back
   gesture); **B** closes it too. The game stands still while the menu is open
 - Menu fully usable with the controller: D-pad / stick move, **A** select, **B** back / close, **L / R** section,
@@ -22,7 +28,7 @@ For 4:3 in the race too, set *Settings → Graphics → Force aspect ratio* to *
 
 ### AI assistance
 
-The changes in this fork were made with AI assistance ([Claude Code](https://claude.com/claude-code)). Planning,
-testing on the device and the decision what gets released are by the repository owner. Tested only on the
-**AYN Odin 2 Portal** — use at your own risk. This applies only to the fork's own changes, not to the code of the
+The changes in this Android version were made with AI assistance ([Claude Code](https://claude.com/claude-code)). Planning,
+testing on the device and the decision what gets released are by the repository owner. Tested on the
+**AYN Odin 2 Portal** — use at your own risk. This applies only to this version's own changes, not to the code of the
 original projects.

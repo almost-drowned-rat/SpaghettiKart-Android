@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Handheld fork: no on-screen controller, only the button to the mods and saves
-     manager. It is shown while the in-game menu is open; MainActivity flips its
+<!-- The button to the mods and saves manager (the touch buttons are TouchControls).
+     It is shown while the in-game menu is open; MainActivity flips its
      visibility. -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"

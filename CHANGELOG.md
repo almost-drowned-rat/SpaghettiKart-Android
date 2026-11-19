@@ -1,7 +1,29 @@
-# Changelog — SpaghettiKart Handheld
+# Changelog — SpaghettiKart — Android
 
-Fork of [izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart) for Android handhelds with a built-in
-controller. Tested on the AYN Odin 2 Portal (1920×1080, Android 13).
+Android version of [SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart), started from
+[izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart). Tested on the AYN Odin 2 Portal
+(1920×1080, Android 13).
+
+## 0.3.0 — unreleased
+
+### Changed
+- Now a direct fork of HarbourMasters/SpaghettiKart (branch `android`; `main` mirrors upstream), with upstream's
+  latest 12 commits merged (up to `ce0f9358f`: Match Refresh Rate for every renderer, V-Sync default, vehicle
+  speeds, menu transition fix and more).
+- New app ID `io.github.almostdrownedrat.spaghettikart`, app name "SpaghettiKart", new signing key: installs next
+  to "SpaghettiKart Handheld" (move saves over by hand if wanted).
+
+### Added
+- **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the game
+  as a controller, so they can be remapped in the controller settings like any pad. The controller icon at the top
+  centre opens their settings: Touch buttons Automatic / Always / Off (Automatic hides them while a controller is
+  used, a touch brings them back), move and resize, button size, show / hide single buttons, opacity, stick
+  sensitivity, reset. They step aside while the menu is open; touches off the buttons still work as a mouse there.
+- The game's stdout / stderr go to logcat (tag `SpaghettiKart-stdout`).
+
+### Fixed
+- Crash right after the first start on a fresh install: the log folder did not exist, logging failed to start and
+  the engine used the missing logger.
 
 ## 0.2 — 2026-10-15
 
