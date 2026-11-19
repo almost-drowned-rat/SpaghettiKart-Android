@@ -28,7 +28,7 @@ final class ShaderSurface extends SDLSurface {
             buffer = null;
         }
         ShaderHost.active = buffer != null;
-        ShaderLibrary.applyChosen(getContext());
+        ShaderHost.applyChosen(getContext());
         super.surfaceChanged(holder, format, width, height);
     }
 

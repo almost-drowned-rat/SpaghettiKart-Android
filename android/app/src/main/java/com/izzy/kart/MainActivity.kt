@@ -60,7 +60,7 @@ class MainActivity : SDLActivity() {
 
     /** With a shader chosen, SDL draws into the shader presenter's buffer (ShaderSurface) instead of the screen. */
     override fun createSDLSurface(context: Context): SDLSurface =
-        if (ShaderLibrary.wanted(context)) ShaderSurface(context) else super.createSDLSurface(context)
+        if (ShaderHost.wanted(context)) ShaderSurface(context) else super.createSDLSurface(context)
 
     @Deprecated("Activity result API of the platform")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -83,7 +83,7 @@ class MainActivity : SDLActivity() {
                     onNativeKeyUp(KeyEvent.KEYCODE_BACK)
                 }
             })
-        touch?.let { t -> shaders = ShaderLibrary(this, t).also { t.setShaderMenu(it) } }
+        touch?.let { t -> shaders = ShaderLibrary(this, t, ShaderHost.TARGET).also { t.setShaderMenu(it) } }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =

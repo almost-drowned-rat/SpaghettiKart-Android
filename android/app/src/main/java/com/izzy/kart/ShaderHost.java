@@ -2,7 +2,12 @@
 // a buffer, the presenter draws it through the chosen RetroArch shader onto the screen.
 package com.izzy.kart;
 
+import android.content.Context;
+import android.os.Build;
+import android.util.Log;
 import android.view.Surface;
+
+import java.io.File;
 
 final class ShaderHost {
     private ShaderHost() { }
@@ -17,4 +22,25 @@ final class ShaderHost {
     static native void nativeDetach();
     /** The .slangp to draw with; "" for none. */
     static native void nativeSetPreset(String path);
+
+    /** For ShaderLibrary: a choice is used at once while the presenter runs (from "Off": at the next start). */
+    static final ShaderLibrary.Target TARGET = new ShaderLibrary.Target() {
+        @Override public boolean live() { return active; }
+        @Override public void use(String path) { nativeSetPreset(path); }
+    };
+
+    /** From the activity's createSDLSurface: whether this run draws through the presenter (a shader was chosen). */
+    static boolean wanted(Context c) {
+        if (Build.VERSION.SDK_INT < 29) return false;
+        String p = ShaderLibrary.chosen(c);
+        if (p.isEmpty() || !new File(p).isFile()) return false;
+        try { return nativeAvailable(); } catch (Throwable t) { Log.w("ShaderHost", "presenter: " + t); return false; }
+    }
+
+    /** After the surface exists: hands the chosen preset to the presenter. */
+    static void applyChosen(Context c) {
+        if (active) {
+            try { nativeSetPreset(ShaderLibrary.chosen(c)); } catch (Throwable ignored) { }
+        }
+    }
 }

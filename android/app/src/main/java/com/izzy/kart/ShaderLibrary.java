@@ -1,8 +1,8 @@
 // ShaderLibrary - the RetroArch shaders in the menu Back opens. Nothing is shipped: the player picks a shader pack
 // (a .zip like https://github.com/libretro/slang-shaders' "Download ZIP"), it is unpacked into the app's folder
 // (<external files>/shaders), and any .slangp in it can then be chosen by browsing its folders. The choice is kept
-// in SharedPreferences "shader". The shader presenter (ShaderHost) runs only when a shader was chosen when the game
-// started; a change between shaders applies at once, from "Off" to a shader at the next start.
+// in SharedPreferences "shader". Where the shader is drawn is the port's (Target): the GLES ports' presenter
+// (ShaderHost; from "Off" to a shader only at the next start), or a renderer of its own (DinoTale's RT64).
 package com.izzy.kart;
 
 import android.app.Activity;
@@ -10,7 +10,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -29,39 +28,29 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 final class ShaderLibrary implements TouchControls.ShaderMenu {
+    /** Where the chosen preset goes: live() - a choice is used at once; use() - the .slangp path, "" for none. */
+    interface Target { boolean live(); void use(String path); }
+
     static final int PICK_ZIP = 0x5ad;
     private static final String TAG = "ShaderHost";
 
     private final Activity activity;
     private final TouchControls touch;
+    private final Target target;
     private volatile boolean importing;
 
-    ShaderLibrary(Activity activity, TouchControls touch) {
+    ShaderLibrary(Activity activity, TouchControls touch, Target target) {
         this.activity = activity;
         this.touch = touch;
+        this.target = target;
     }
 
     static File folder(Context c) { return new File(c.getExternalFilesDir(null), "shaders"); }
 
-    private static SharedPreferences prefs(Context c) { return c.getSharedPreferences("shader", Context.MODE_PRIVATE); }
+    static SharedPreferences prefs(Context c) { return c.getSharedPreferences("shader", Context.MODE_PRIVATE); }
 
     /** The chosen preset (absolute path), or "" for none. */
     static String chosen(Context c) { return prefs(c).getString("preset", ""); }
-
-    /** From the activity's createSDLSurface: whether this run draws through the presenter. */
-    static boolean wanted(Context c) {
-        if (Build.VERSION.SDK_INT < 29) return false;
-        String p = chosen(c);
-        if (p.isEmpty() || !new File(p).isFile()) return false;
-        try { return ShaderHost.nativeAvailable(); } catch (Throwable t) { Log.w(TAG, "presenter: " + t); return false; }
-    }
-
-    /** After the surface exists: hands the chosen preset to the presenter. */
-    static void applyChosen(Context c) {
-        if (ShaderHost.active) {
-            try { ShaderHost.nativeSetPreset(chosen(c)); } catch (Throwable ignored) { }
-        }
-    }
 
     // ---------------------------------------------------------------- the menu
 
@@ -126,8 +115,8 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
 
     private void choose(String path) {
         prefs(activity).edit().putString("preset", path).apply();
-        if (ShaderHost.active) {
-            try { ShaderHost.nativeSetPreset(path); } catch (Throwable ignored) { }
+        if (target.live()) {
+            try { target.use(path); } catch (Throwable t) { Log.w(TAG, "shader: " + t); }
         } else if (!path.isEmpty()) {
             toast("The shader is used from the next start of the game");
         }
