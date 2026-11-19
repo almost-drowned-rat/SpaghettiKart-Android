@@ -1,44 +1,88 @@
 # SpaghettiKart — Android
 
-Android version of [SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart) (the Mario Kart 64 PC port),
-kept as a direct fork of it so upstream changes merge straight in. It started from
-[izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart), the original Android port. Made for Android
-handhelds with a built-in controller and phones alike. Tested on the **AYN Odin 2 Portal** (1920×1080, Android 13).
+The Android version of [SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart), the Mario Kart 64 PC
+port: the game running natively on Android with touch buttons, full controller support and RetroArch shaders.
+Made for Android handhelds with a built-in controller and for phones. Tested on the **AYN Odin 2 Portal**
+(Snapdragon 8 Gen 2, 1920×1080, Android 13).
 
-What this version adds (details in [CHANGELOG.md](CHANGELOG.md)):
+This repository is a fork of the main project: branch `main` follows upstream, branch `android` (the default) is
+the Android port. It started from [izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart), the first
+Android port. The main project's README is kept as [README-UPSTREAM.md](README-UPSTREAM.md).
 
-- Upstream SpaghettiKart — branch `main` follows upstream, `android` is this port
-- App ID `io.github.almostdrownedrat.spaghettikart` ("SpaghettiKart") — installs next to other SpaghettiKart apps
-- **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the game
-  as a controller, so they can be remapped in the game's controller settings like any pad. Their settings are under
-  **Touch controls** in the menu (Back, or the **controller icon** at the top centre): **Touch buttons Automatic /
-  Always / Off** (Automatic hides them while a
-  controller is used and a touch brings them back — on a handheld you normally never see them), move and resize,
-  button size, show / hide single buttons, opacity, stick sensitivity, reset. Touches off the buttons still work
-  as a mouse in the menus. The **Mods** button (to the mods and saves managers) is shown while the menu is open
-- **Back** (swipe from the edge to show the system bar and tap back, or the back gesture) opens
-  the menu in game — the same in all of this fork's Android ports and fully usable with the controller (D-pad /
-  stick, **A** choose, **B** back): **Back to the game**, **Game settings and controller** (the game's own menu,
-  where the controller is set up) and **Touch controls**. With the game's menu open, Back closes it; **B** closes it too. The game stands
-  still while the game's menu is open
-- RetroArch shaders (librashader, Vulkan; 64-bit Android 10+): none are shipped. In the menu Back opens, Shader >
-  Import shader pack (.zip) takes a slang shader pack such as libretro/slang-shaders' "Download ZIP"; it is unpacked
-  into the app's folder (Android/data/<app>/files/shaders) and its presets (.slangp) can then be picked by folder.
-  While a shader is in use the game draws into a buffer that is drawn through the shader onto the screen
-  (src/port/android/ShaderHost.cpp); switching between shaders applies at once, from Off to a shader at the next
-  start. librashader (MIT / MPL-2.0 / GPL-3.0) is loaded at run time; its C header is src/port/android/librashader.h.
-- Menu fully usable with the controller: D-pad / stick move, **A** select, **B** back / close, **L / R** section,
-  **ZL / ZR** tab, **Left / Right** change a slider by one step, **Y** reset the selected setting to its default.
-  Every setting has a reset button (orange when changed), and **Reset page** resets a whole page
-- Real full screen, no black strip from the navigation bar; the game renders at the full 1920×1080
-- Fixed: the APK was missing the files the launcher needs to turn the ROM into game data
+> ⚠️ **No game files.** The app contains only this project's code. You need your own legally obtained ROM of
+> **Mario Kart 64 (USA)**, sha1 `579c48e211ae952530ffc8738709f078d5dd215e`.
 
-The race renders in 16:9 by default (wider view, not stretched); title and menu screens keep their 4:3 borders.
-For 4:3 in the race too, set *Settings → Graphics → Force aspect ratio* to *Original (4:3)*.
+## Install
 
-### AI assistance
+1. Download the `.apk` from the [Releases](../../releases) page and open it on the device (allow installing apps
+   from your browser or file manager when Android asks).
+2. Start **SpaghettiKart** and choose your ROM in Android's file picker. It is checked, and the game files
+   (`mk64.o2r`) are extracted from it once — that takes a moment — then the game starts.
 
-The changes in this Android version were made with AI assistance ([Claude Code](https://claude.com/claude-code)). Planning,
-testing on the device and the decision what gets released are by the repository owner. Tested on the
-**AYN Odin 2 Portal** — use at your own risk. This applies only to this version's own changes, not to the code of the
-original projects.
+Updates install over the previous version and keep your saves. To get them automatically, add this repository to
+[Obtainium](https://github.com/ImranR98/Obtainium) (`https://github.com/almost-drowned-rat/SpaghettiKart-Android`).
+
+Needs Android 7.0 or newer (arm64 or 32-bit arm); RetroArch shaders need a 64-bit device with Android 10 or newer
+and Vulkan. App ID `io.github.almostdrownedrat.spaghettikart` — it installs next to other SpaghettiKart apps.
+
+## Controls
+
+- **Controller**: works out of the box (built-in handheld controls or a Bluetooth / USB pad); set it up in the
+  game's settings.
+- **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the
+  game as a controller, so they can be remapped like any pad. **Automatic** hides them while a controller is used
+  and a touch brings them back; **Always** and **Off** are the other modes. The **Mods** button (mods and saves
+  managers) shows while the menu is open.
+- **Back** (the back gesture, the system bar's back button or a handheld's own Back key) opens the menu over the
+  game, fully usable with the controller (D-pad / stick, **A** choose, **B** back, holding the D-pad keeps moving):
+  - **Back to the game**
+  - **Game settings and controller** — the game's own menu
+  - **Shader** / **Shader parameters** — RetroArch shaders (below)
+  - **FPS / frame time** — a small readout in the corner
+  - **Touch controls** — mode, move and resize, size, single buttons, opacity, stick sensitivity, reset
+  - **Exit game**
+
+  With the game's menu open, Back (or **B**) closes it; the game stands still meanwhile. In the game's menu
+  **L / R** switch the section, **ZL / ZR** the tab, **Left / Right** change a slider by one step, and **Y** sets
+  the selected setting back to its default (every setting also has a reset button, orange when changed, and
+  **Reset page** resets a whole page). In the menu Back opens, **Y** does the same.
+
+## Shaders
+
+None are shipped: Back > **Shader** > **Import shader pack (.zip)** takes a slang shader pack such as
+[libretro/slang-shaders](https://github.com/libretro/slang-shaders)' "Download ZIP"; it is unpacked into the app's
+folder (`Android/data/io.github.almostdrownedrat.spaghettikart/files/shaders`) and its presets (`.slangp`) can be
+picked by folder. **Shader parameters** changes the active preset's settings. While a shader is in use the game
+draws into a buffer that goes through the shader onto the screen; switching between shaders applies at once, from
+Off to a shader at the next start.
+
+The race renders in 16:9 by default (wider view, not stretched); title and menu screens keep their 4:3 borders. For
+4:3 in the race too, set *Settings → Graphics → Force aspect ratio* to *Original (4:3)*.
+
+## Known issues
+
+Report problems on this repository's [Issues](../../issues) page, with the device and Android version. Problems
+of the game itself (also on the PC) belong to the [main project](https://github.com/HarbourMasters/SpaghettiKart/issues).
+
+## Building
+
+Install the Android SDK, NDK and JDK 21, then build the APK in `android/` with `./gradlew assembleRelease`; the
+Android sources are in `android/` and `src/port/android/`. The game files are not part of the build: the app makes
+them from the player's ROM on the device.
+
+## AI assistance
+
+The changes in this Android version were made with AI assistance ([Claude Code](https://claude.com/claude-code)).
+Planning, testing on the device and the decision what gets released are by the repository owner. Use at your own
+risk. This applies only to this version's own changes, not to the code of the original projects.
+
+## Credits
+
+- [HarbourMasters/SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart) — SpaghettiKart (see
+  [README-UPSTREAM.md](README-UPSTREAM.md)), built on [libultraship](https://github.com/Kenix3/libultraship) and the
+  [Mario Kart 64 decompilation](https://github.com/n64decomp/mk64)
+- [izzy2lost/SpaghettiKart](https://github.com/izzy2lost/SpaghettiKart) — the Android port this version is based on
+- [librashader](https://github.com/SnowflakePowered/librashader) by SnowflakePowered (MIT / MPL-2.0 / GPL-3.0) —
+  RetroArch shaders, loaded at run time
+
+*Fan project, not affiliated with Nintendo. Mario Kart 64 is © Nintendo.*
