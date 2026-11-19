@@ -5,6 +5,12 @@ project(
   Spaghettify
   VERSION 1.0.0
   LANGUAGES C CXX ASM)
+
+# Android: build paths in the binaries (__FILE__ in asserts / logs, debug info) start with ~ instead of the build
+# machine's home folder, so the APK names no user.
+if(ANDROID AND DEFINED ENV{HOME})
+    add_compile_options("-ffile-prefix-map=$ENV{HOME}=~")
+endif()
 include(FetchContent)
 
 # Set Project Version
