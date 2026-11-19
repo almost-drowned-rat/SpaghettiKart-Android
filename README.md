@@ -55,10 +55,12 @@ Back > **Shaders** has everything in one place:
 - **Shader selection** — the folders and presets of the imported packs. None are shipped: **Import shader pack
   (.zip)** takes a slang shader pack such as [libretro/slang-shaders](https://github.com/libretro/slang-shaders)'
   "Download ZIP"; it is unpacked into the app's folder (`Android/data/io.github.almostdrownedrat.spaghettikart/files/shaders`).
-- **Shader resolution** — the picture the shader works on: **Original** (240 lines, as in RetroArch: the game draws
-  in its low resolution mode and the shader gets that picture - the look the shaders were made for, and the
-  lightest), **2x** (480 lines) or **Full** (the screen's size). While the game's own menu is open, the shader works
-  on the full picture so the menu stays readable.
+- **Shader resolution** — an option, off by default: **Game's setting** (the default: the game's resolution is left
+  alone and the shader gets the picture as the game draws it), **Original** (240 lines, as in RetroArch: the game
+  draws in its low resolution mode and the shader gets that picture - the look the shaders were made for, and the
+  lightest) or **2x** (480 lines). With Original / 2x the game's own resolution options are greyed out; back on
+  Game's setting (or with the shader off) the low resolution mode is switched off again. While the game's own menu
+  is open, the shader works on the full picture so the menu stays readable.
 - **Shader parameters** — the active preset's settings (kept per preset).
 - **Import shader pack (.zip)**
 

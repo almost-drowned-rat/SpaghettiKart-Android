@@ -872,9 +872,11 @@ JNIEXPORT void JNICALL SH_JNI(nativeDetach)(JNIEnv*, jclass) {
 extern "C" void CVarSetInteger(const char* name, int32_t value);
 
 // Shader Resolution (ShaderLibrary, while the game runs): lowResMode - libultraship's gLowResMode (0 off, 2 240p
-// widescreen, 3 480p widescreen); lines - the picture the shader works on (0: the frame as it is).
+// widescreen, 3 480p widescreen; -1 left as it is); lines - the picture the shader works on (0: the frame as it is).
 JNIEXPORT void JNICALL SH_JNI(nativeSetResolution)(JNIEnv*, jclass, jint lowResMode, jint lines) {
-    CVarSetInteger("gLowResMode", lowResMode);
+    if (lowResMode >= 0) {   // -1: the game's own setting stays
+        CVarSetInteger("gLowResMode", lowResMode);
+    }
     shaderLines = lines;
 }
 
