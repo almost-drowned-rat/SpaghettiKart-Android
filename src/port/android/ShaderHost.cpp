@@ -794,7 +794,7 @@ JNIEXPORT jstring JNICALL SH_JNI(nativeParams)(JNIEnv* env, jclass) {
     for (const Param& p : H.params) {
         auto it = H.overrides.find(p.name);
         float v = it != H.overrides.end() ? it->second : p.initial;
-        snprintf(num, sizeof num, "\t%g\t%g\t%g\t%g\n", v, p.minimum, p.maximum, p.step);
+        snprintf(num, sizeof num, "\t%g\t%g\t%g\t%g\t%g\n", v, p.minimum, p.maximum, p.step, p.initial);
         out += p.name + "\t" + p.description + num;
     }
     return env->NewStringUTF(out.c_str());

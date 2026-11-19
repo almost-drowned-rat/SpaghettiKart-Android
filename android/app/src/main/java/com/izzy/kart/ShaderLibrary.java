@@ -172,7 +172,7 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
 
     private static final class Param {
         String name, description;
-        float value, min, max, step;
+        float value, min, max, step, initial;
     }
 
     private List<Param> readParams() {
@@ -191,6 +191,7 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
                 p.min = Float.parseFloat(f[3]);
                 p.max = Float.parseFloat(f[4]);
                 p.step = Float.parseFloat(f[5]);
+                p.initial = f.length >= 7 ? Float.parseFloat(f[6]) : Float.NaN;
                 l.add(p);
             } catch (NumberFormatException ignored) { }
         }
@@ -225,6 +226,13 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
                                 v = Math.max(p.min, Math.min(p.max, Math.round((v + d * s) / s) * s));
                                 prefs(activity).edit().putFloat(PARAM + preset + "|" + p.name, v).apply();
                                 try { target.setParam(p.name, v); } catch (Throwable ignored) { }
+                            }
+                            @Override boolean reset() {   // Y: the preset's value
+                                if (Float.isNaN(p.initial)) return false;
+                                v = p.initial;
+                                prefs(activity).edit().remove(PARAM + preset + "|" + p.name).apply();
+                                try { target.setParam(p.name, v); } catch (Throwable ignored) { }
+                                return true;
                             }
                         });
                     }
