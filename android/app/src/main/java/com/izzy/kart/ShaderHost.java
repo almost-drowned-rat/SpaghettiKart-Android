@@ -26,6 +26,8 @@ final class ShaderHost {
     /** The preset's parameters, one per line: name, description, value, min, max, step (tabs). */
     static native String nativeParams();
     static native void nativeSetParam(String name, float value);
+    static native void nativeSetResolution(int lowResMode, int lines);
+    static native void nativeSetEngineMenuOpen(boolean open);
 
     /** For ShaderLibrary: a choice is used at once while the presenter runs (from "Off": at the next start). */
     static final ShaderLibrary.Target TARGET = new ShaderLibrary.Target() {
@@ -34,6 +36,17 @@ final class ShaderHost {
         @Override public boolean compiling() { return active && nativeCompiling(); }
         @Override public String params() { return active ? nativeParams() : ""; }
         @Override public void setParam(String name, float value) { if (active) nativeSetParam(name, value); }
+        // Shader Resolution: the game draws in libultraship's low resolution mode (240p / 480p widescreen) and the
+        // shader works on that picture; Full - the screen's size. Only called while the game runs.
+        @Override public boolean hasResolution() { return true; }
+        @Override public void setResolution(int mode, boolean shaderOn) {
+            int lowRes = !shaderOn ? 0 : mode == 0 ? 2 : mode == 1 ? 3 : 0;
+            int lines = !shaderOn ? 0 : mode == 0 ? 240 : mode == 1 ? 480 : 0;
+            try { nativeSetResolution(lowRes, lines); } catch (Throwable t) { Log.w("ShaderHost", "resolution: " + t); }
+        }
+        @Override public void setEngineMenuOpen(boolean open) {
+            if (active) { try { nativeSetEngineMenuOpen(open); } catch (Throwable ignored) { } }
+        }
     };
 
     /** From the activity's createSDLSurface: whether this run draws through the presenter (a shader was chosen). */

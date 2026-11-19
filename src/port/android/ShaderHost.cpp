@@ -211,6 +211,21 @@ struct Host {
 // True while a preset is being built (the Java side shows its progress dialog meanwhile; read without the mutex).
 std::atomic<bool> compiling{ false };
 
+// Shader Resolution (ShaderLibrary): the picture the shader works on, in lines (0 = the frame as it is). The game draws
+// at that size (libultraship's low resolution mode, set by nativeSetResolution) and the frame is scaled down to it
+// before the shader, as RetroArch feeds a shader the console's own picture. Not while the engine's menu is open:
+// it is drawn at the screen's size and stays readable.
+std::atomic<int> shaderLines{ 0 };
+std::atomic<bool> engineMenuOpen{ false };
+
+// The frame scaled down for the shader (Shader Resolution), made again when its size changes.
+struct Scaled {
+    VkImage image = VK_NULL_HANDLE;
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    VkFormat format = VK_FORMAT_UNDEFINED;
+    uint32_t width = 0, height = 0;
+} S;
+
 bool hasExtension(const std::vector<VkExtensionProperties>& list, const char* name) {
     return std::any_of(list.begin(), list.end(), [&](const VkExtensionProperties& e) { return strcmp(e.extensionName, name) == 0; });
 }
@@ -326,6 +341,64 @@ void destroySwapchain() {
         vkDestroySwapchainKHR(H.device, H.swapchain, nullptr);
         H.swapchain = VK_NULL_HANDLE;
     }
+}
+
+void destroyScaled() {
+    if (S.image != VK_NULL_HANDLE) {
+        vkDestroyImage(H.device, S.image, nullptr);
+        S.image = VK_NULL_HANDLE;
+    }
+    if (S.memory != VK_NULL_HANDLE) {
+        vkFreeMemory(H.device, S.memory, nullptr);
+        S.memory = VK_NULL_HANDLE;
+    }
+    S.width = S.height = 0;
+}
+
+bool ensureScaled(uint32_t width, uint32_t height, VkFormat format) {
+    if (S.image != VK_NULL_HANDLE && S.width == width && S.height == height && S.format == format) {
+        return true;
+    }
+    vkDeviceWaitIdle(H.device);
+    destroyScaled();
+    VkImageCreateInfo ici = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+    ici.imageType = VK_IMAGE_TYPE_2D;
+    ici.format = format;
+    ici.extent = { width, height, 1 };
+    ici.mipLevels = 1;
+    ici.arrayLayers = 1;
+    ici.samples = VK_SAMPLE_COUNT_1_BIT;
+    ici.tiling = VK_IMAGE_TILING_OPTIMAL;
+    ici.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    if (vkCreateImage(H.device, &ici, nullptr, &S.image) != VK_SUCCESS) {
+        S.image = VK_NULL_HANDLE;
+        return false;
+    }
+    VkMemoryRequirements req;
+    vkGetImageMemoryRequirements(H.device, S.image, &req);
+    VkPhysicalDeviceMemoryProperties mp;
+    vkGetPhysicalDeviceMemoryProperties(H.physical, &mp);
+    uint32_t type = UINT32_MAX;
+    for (uint32_t i = 0; i < mp.memoryTypeCount; i++) {
+        if ((req.memoryTypeBits & (1u << i)) && (mp.memoryTypes[i].propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)) {
+            type = i;
+            break;
+        }
+    }
+    VkMemoryAllocateInfo mai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+    mai.allocationSize = req.size;
+    mai.memoryTypeIndex = type;
+    if (type == UINT32_MAX || vkAllocateMemory(H.device, &mai, nullptr, &S.memory) != VK_SUCCESS ||
+        vkBindImageMemory(H.device, S.image, S.memory, 0) != VK_SUCCESS) {
+        destroyScaled();
+        return false;
+    }
+    S.width = width;
+    S.height = height;
+    S.format = format;
+    LOGI("the shader works on a %ux%u picture", width, height);
+    return true;
 }
 
 void destroySurface() {
@@ -614,13 +687,37 @@ void present(AImageReader* reader) {
             bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             vkBeginCommandBuffer(H.cmd, &bi);
             if (H.chain != nullptr) {
-                barrier(input->image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
-                        VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, foreign, H.queueFamily);
+                // Shader Resolution: the frame scaled down (nearest) to the lines the shader works on
+                const int lines = engineMenuOpen ? 0 : shaderLines.load();
+                const bool scale = lines > 0 && static_cast<uint32_t>(lines) < input->height &&
+                                   ensureScaled(input->width * static_cast<uint32_t>(lines) / input->height,
+                                                static_cast<uint32_t>(lines), input->format);
+                if (scale) {
+                    barrier(input->image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0,
+                            VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT, foreign, H.queueFamily);
+                    barrier(S.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0,
+                            VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+                    VkImageBlit down = {};
+                    down.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+                    down.srcOffsets[1] = { static_cast<int32_t>(input->width), static_cast<int32_t>(input->height), 1 };
+                    down.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+                    down.dstOffsets[1] = { static_cast<int32_t>(S.width), static_cast<int32_t>(S.height), 1 };
+                    vkCmdBlitImage(H.cmd, input->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, S.image,
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &down, VK_FILTER_NEAREST);
+                    barrier(S.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                            VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+                } else {
+                    barrier(input->image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0,
+                            VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, foreign, H.queueFamily);
+                }
                 barrier(output, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-                libra_image_vk_t in = { input->image, input->format, input->width, input->height };
+                libra_image_vk_t in = scale ? libra_image_vk_t{ S.image, S.format, S.width, S.height }
+                                            : libra_image_vk_t{ input->image, input->format, input->width, input->height };
                 libra_image_vk_t out = { output, H.swapFormat, H.swapExtent.width, H.swapExtent.height };
                 libra_viewport_t viewport = { 0.0f, 0.0f, H.swapExtent.width, H.swapExtent.height };
                 frame_vk_opt_t fo = {};
@@ -637,9 +734,15 @@ void present(AImageReader* reader) {
                 barrier(output, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-                barrier(input->image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                        VK_ACCESS_SHADER_READ_BIT, 0, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, H.queueFamily, foreign);
+                if (scale) {
+                    barrier(input->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                            VK_ACCESS_TRANSFER_READ_BIT, 0, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, H.queueFamily, foreign);
+                } else {
+                    barrier(input->image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                            VK_ACCESS_SHADER_READ_BIT, 0, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, H.queueFamily, foreign);
+                }
             } else {
                 // no shader: the frame as it is, scaled to the screen
                 barrier(input->image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0,
@@ -765,6 +868,21 @@ JNIEXPORT void JNICALL SH_JNI(nativeDetach)(JNIEnv*, jclass) {
 }
 
 // A preset is being compiled right now.
+// libultraship's console variables (the game's library): the low resolution mode the game draws in.
+extern "C" void CVarSetInteger(const char* name, int32_t value);
+
+// Shader Resolution (ShaderLibrary, while the game runs): lowResMode - libultraship's gLowResMode (0 off, 2 240p
+// widescreen, 3 480p widescreen); lines - the picture the shader works on (0: the frame as it is).
+JNIEXPORT void JNICALL SH_JNI(nativeSetResolution)(JNIEnv*, jclass, jint lowResMode, jint lines) {
+    CVarSetInteger("gLowResMode", lowResMode);
+    shaderLines = lines;
+}
+
+// The engine's menu is open (TouchControls' poll): the shader then works on the full frame.
+JNIEXPORT void JNICALL SH_JNI(nativeSetEngineMenuOpen)(JNIEnv*, jclass, jboolean open) {
+    engineMenuOpen = open == JNI_TRUE;
+}
+
 JNIEXPORT jboolean JNICALL SH_JNI(nativeCompiling)(JNIEnv*, jclass) {
     return compiling ? JNI_TRUE : JNI_FALSE;
 }
