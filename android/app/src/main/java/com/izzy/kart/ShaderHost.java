@@ -22,11 +22,13 @@ final class ShaderHost {
     static native void nativeDetach();
     /** The .slangp to draw with; "" for none. */
     static native void nativeSetPreset(String path);
+    static native boolean nativeCompiling();
 
     /** For ShaderLibrary: a choice is used at once while the presenter runs (from "Off": at the next start). */
     static final ShaderLibrary.Target TARGET = new ShaderLibrary.Target() {
         @Override public boolean live() { return active; }
         @Override public void use(String path) { nativeSetPreset(path); }
+        @Override public boolean compiling() { return active && nativeCompiling(); }
     };
 
     /** From the activity's createSDLSurface: whether this run draws through the presenter (a shader was chosen). */

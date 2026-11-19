@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <mutex>
 #include <string>
@@ -189,6 +190,9 @@ struct Host {
     libra_vk_filter_chain_t chain = nullptr;
     size_t frameCount = 0;
 } H;
+
+// True while a preset is being built (the Java side shows its progress dialog meanwhile; read without the mutex).
+std::atomic<bool> compiling{ false };
 
 bool hasExtension(const std::vector<VkExtensionProperties>& list, const char* name) {
     return std::any_of(list.begin(), list.end(), [&](const VkExtensionProperties& e) { return strcmp(e.extensionName, name) == 0; });
@@ -474,6 +478,10 @@ void updateChain() {
         H.chainFailed = true;
         return;
     }
+    struct Busy {
+        Busy() { compiling = true; }
+        ~Busy() { compiling = false; }
+    } busy;
     libra_shader_preset_t preset = nullptr;
     libra_error_t error = libra.presetCreate(H.preset.c_str(), &preset);
     if (error != nullptr) {
@@ -711,6 +719,11 @@ JNIEXPORT void JNICALL SH_JNI(nativeDetach)(JNIEnv*, jclass) {
         ANativeWindow_release(H.window);
         H.window = nullptr;
     }
+}
+
+// A preset is being compiled right now.
+JNIEXPORT jboolean JNICALL SH_JNI(nativeCompiling)(JNIEnv*, jclass) {
+    return compiling ? JNI_TRUE : JNI_FALSE;
 }
 
 // The preset (.slangp path) to draw with; empty: none. Any thread; used from the next frame.

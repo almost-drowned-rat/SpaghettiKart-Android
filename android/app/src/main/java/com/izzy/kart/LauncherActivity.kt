@@ -31,6 +31,7 @@ class LauncherActivity : ComponentActivity() {
     private lateinit var status: TextView
     private lateinit var chooseButton: Button
     private lateinit var progress: ProgressBar
+    private lateinit var dialog: Progress95
 
     private val pickRom =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -104,7 +105,10 @@ class LauncherActivity : ComponentActivity() {
         root.addView(scroller, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         root.addView(chooseButton)
         root.addView(progress)
+        dialog = Progress95(this)
         setContentView(root)
+        addContentView(dialog, android.view.ViewGroup.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT))
     }
 
     private fun importRom(uri: Uri) {
@@ -174,7 +178,9 @@ class LauncherActivity : ComponentActivity() {
     private fun setBusy(busy: Boolean, message: String) {
         status.text = message
         chooseButton.isEnabled = !busy
-        progress.visibility = if (busy) View.VISIBLE else View.GONE
+        // the progress dialog in Orta's setup look (Progress95, shared with the in-game shader import)
+        progress.visibility = View.GONE
+        if (busy) dialog.set("SpaghettiKart setup", message, -1f) else dialog.hide()
         if (busy) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
