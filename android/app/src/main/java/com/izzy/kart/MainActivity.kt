@@ -169,7 +169,8 @@ class MainActivity : SDLActivity() {
         menuOpen = open
         // Managing mods is a settings action, so it stays out of reach until
         // the menu is up.
-        modsButton.visibility = if (open) View.VISIBLE else View.GONE
+        // the settings menu has a Mods tab now (openModsFromMenu), so the floating button stays hidden
+        modsButton.visibility = View.GONE
     }
 
     private fun setupModsOverlay() {
@@ -190,5 +191,11 @@ class MainActivity : SDLActivity() {
     private companion object {
         /** Fast enough to feel immediate on a menu toggle, cheap enough to ignore. */
         const val MENU_POLL_MS = 150L
+    }
+
+    /** The settings menu's Mods tab (src/port/ui/Menu.cpp, through AndroidBridge.cpp; any thread). */
+    @Suppress("unused")
+    fun openModsFromMenu() {
+        runOnUiThread { startActivity(Intent(this, ModsActivity::class.java)) }
     }
 }

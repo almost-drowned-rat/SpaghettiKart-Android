@@ -274,3 +274,24 @@ JNIEXPORT jstring JNICALL Java_com_izzy_kart_GameAssets_nativeGenerateGameArchiv
 } // extern "C"
 
 #endif // __ANDROID__
+
+// The Mods tab of the settings menu (ui/Menu.cpp): MainActivity.openModsFromMenu() opens the mods and saves manager.
+namespace Ship {
+void Android_OpenModsManager() {
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jobject activity = static_cast<jobject>(SDL_AndroidGetActivity());
+    if (env == nullptr || activity == nullptr) {
+        return;
+    }
+    jclass cls = env->GetObjectClass(activity);
+    jmethodID method = env->GetMethodID(cls, "openModsFromMenu", "()V");
+    if (method != nullptr) {
+        env->CallVoidMethod(activity, method);
+    }
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(cls);
+    env->DeleteLocalRef(activity);
+}
+} // namespace Ship
