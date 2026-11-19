@@ -105,7 +105,7 @@ class LauncherActivity : ComponentActivity() {
         root.addView(scroller, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         root.addView(chooseButton)
         root.addView(progress)
-        dialog = Progress95(this)
+        dialog = Progress95(this).apply { setOpaque(true) }   // on black, as in Orta's launcher
         setContentView(root)
         addContentView(dialog, android.view.ViewGroup.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT))
