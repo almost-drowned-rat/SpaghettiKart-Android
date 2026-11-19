@@ -43,6 +43,9 @@ public final class TouchControls {
     /** A port with RetroArch shaders: their names (the first is "Off"), the current one, choosing one. */
     public interface Shaders { String[] names(); int current(); void select(int index); }
 
+    /** A port whose shaders are browsed in their own pages (ShaderLibrary): the current one's name and the page. */
+    interface ShaderMenu { String current(); SideMenu.Page page(); }
+
     private static final long POLL_MS = 200, ICON_SHOW_MS = 4000;
     private final TouchOverlay overlay;
     private final SideMenu menu;
@@ -50,6 +53,7 @@ public final class TouchControls {
     private final GameState game;
     private final Activity activity;
     private Shaders shaders;
+    private ShaderMenu shaderMenu;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private long iconUntil;
     private boolean lastRunning, lastMenu;
@@ -162,6 +166,13 @@ public final class TouchControls {
 
     /** Adds the shader choice to the menu (ports with RetroArch shaders). */
     public void setShaders(Shaders s) { shaders = s; }
+
+    /** Adds "Shader ›" with its own pages to the menu (ports with ShaderLibrary). */
+    void setShaderMenu(ShaderMenu m) { shaderMenu = m; }
+
+    /** For ShaderMenu pages: open a sub-page, rebuild the current one (values changed). */
+    void pushPage(SideMenu.Page p) { menu.push(p); }
+    void refreshPage() { if (menu.isOpen()) menu.refresh(); }
 
     private void updateIcon() {
         boolean show = overlay.isGameRunning() && !menu.isOpen() && !overlay.isGameMenuOpen()
@@ -296,6 +307,11 @@ public final class TouchControls {
                             }
                         });
                     }
+                }
+                if (shaderMenu != null) {
+                    l.add(new SideMenu.Item("Shader:  " + shaderMenu.current() + "  ›") {
+                        @Override void run() { menu.push(shaderMenu.page()); }
+                    });
                 }
                 l.add(new SideMenu.Item("Touch controls  ›") { @Override void run() { menu.push(touchPage()); } });
                 l.add(new SideMenu.Item("Exit game") { @Override void run() { exitGame(); } });

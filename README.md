@@ -21,6 +21,12 @@ What this version adds (details in [CHANGELOG.md](CHANGELOG.md)):
   stick, **A** choose, **B** back): **Back to the game**, **Game settings and controller** (the game's own menu,
   where the controller is set up) and **Touch controls**. With the game's menu open, Back closes it; **B** closes it too. The game stands
   still while the game's menu is open
+- RetroArch shaders (librashader, Vulkan; 64-bit Android 10+): none are shipped. In the menu Back opens, Shader >
+  Import shader pack (.zip) takes a slang shader pack such as libretro/slang-shaders' "Download ZIP"; it is unpacked
+  into the app's folder (Android/data/<app>/files/shaders) and its presets (.slangp) can then be picked by folder.
+  While a shader is in use the game draws into a buffer that is drawn through the shader onto the screen
+  (src/port/android/ShaderHost.cpp); switching between shaders applies at once, from Off to a shader at the next
+  start. librashader (MIT / MPL-2.0 / GPL-3.0) is loaded at run time; its C header is src/port/android/librashader.h.
 - Menu fully usable with the controller: D-pad / stick move, **A** select, **B** back / close, **L / R** section,
   **ZL / ZR** tab, **Left / Right** change a slider by one step, **Y** reset the selected setting to its default.
   Every setting has a reset button (orange when changed), and **Reset page** resets a whole page

@@ -332,3 +332,8 @@ if(NOT ANDROID)
       ${CMAKE_SOURCE_DIR}/cmake/configure-packaging.cmake)
   include(cmake/packaging.cmake)
 endif()
+
+# Android: the shader presenter (src/port/android/ShaderHost.cpp) draws the game through librashader with Vulkan.
+if(ANDROID)
+    target_link_libraries(${PROJECT_NAME} PRIVATE vulkan)
+endif()

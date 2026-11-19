@@ -1,5 +1,6 @@
 package com.izzy.kart
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +17,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
 import org.libsdl.app.SDLActivity
+import org.libsdl.app.SDLSurface
 
 /**
  * The game itself.
@@ -37,6 +39,9 @@ class MainActivity : SDLActivity() {
 
     private var touch: TouchControls? = null
 
+    /** RetroArch shaders: the packs and the choice (ShaderLibrary), drawn by ShaderHost through ShaderSurface. */
+    private var shaders: ShaderLibrary? = null
+
     private val handler = Handler(Looper.getMainLooper())
     private val menuWatcher = object : Runnable {
         override fun run() {
@@ -53,6 +58,16 @@ class MainActivity : SDLActivity() {
 
     private external fun isMenuOpen(): Boolean
 
+    /** With a shader chosen, SDL draws into the shader presenter's buffer (ShaderSurface) instead of the screen. */
+    override fun createSDLSurface(context: Context): SDLSurface =
+        if (ShaderLibrary.wanted(context)) ShaderSurface(context) else super.createSDLSurface(context)
+
+    @Deprecated("Activity result API of the platform")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (shaders?.onActivityResult(requestCode, resultCode, data) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fillScreen()
@@ -68,6 +83,7 @@ class MainActivity : SDLActivity() {
                     onNativeKeyUp(KeyEvent.KEYCODE_BACK)
                 }
             })
+        touch?.let { t -> shaders = ShaderLibrary(this, t).also { t.setShaderMenu(it) } }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
