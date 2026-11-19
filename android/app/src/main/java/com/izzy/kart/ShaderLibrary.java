@@ -49,8 +49,11 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("shader", Context.MODE_PRIVATE); }
 
-    /** The chosen preset (absolute path), or "" for none. */
-    static String chosen(Context c) { return prefs(c).getString("preset", ""); }
+    /** The chosen preset (absolute path), or "" for none - also when its file is gone (pack replaced or deleted). */
+    static String chosen(Context c) {
+        String p = prefs(c).getString("preset", "");
+        return p.isEmpty() || new File(p).isFile() ? p : "";
+    }
 
     // ---------------------------------------------------------------- the menu
 
@@ -94,9 +97,6 @@ final class ShaderLibrary implements TouchControls.ShaderMenu {
                             });
                         }
                     }
-                }
-                if (top && l.size() == 2) {
-                    l.add(new SideMenu.Item("(no shaders yet: import a pack, e.g. libretro's slang-shaders .zip)") { });
                 }
                 return l;
             }
