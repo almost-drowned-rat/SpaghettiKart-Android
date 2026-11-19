@@ -43,8 +43,8 @@ android {
         applicationId = "io.github.almostdrownedrat.spaghettikart"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.3.2"
+        versionCode = 13
+        versionName = "0.3.3"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")

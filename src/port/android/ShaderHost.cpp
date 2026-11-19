@@ -211,10 +211,9 @@ struct Host {
 // True while a preset is being built (the Java side shows its progress dialog meanwhile; read without the mutex).
 std::atomic<bool> compiling{ false };
 
-// Shader Resolution (ShaderLibrary): the picture the shader works on, in lines (0 = the frame as it is). The game draws
-// at that size (libultraship's low resolution mode, set by nativeSetResolution) and the frame is scaled down to it
-// before the shader, as RetroArch feeds a shader the console's own picture. Not while the engine's menu is open:
-// it is drawn at the screen's size and stays readable.
+// Shader Resolution (ShaderLibrary): the picture the shader works on, in lines (0 = the frame as it is). The game's
+// frame (at its own resolution) is scaled down to it before the shader, as RetroArch feeds a shader the console's
+// picture. Not while the engine's menu is open: it stays readable.
 std::atomic<int> shaderLines{ 0 };
 std::atomic<bool> engineMenuOpen{ false };
 
@@ -704,7 +703,7 @@ void present(AImageReader* reader) {
                     down.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
                     down.dstOffsets[1] = { static_cast<int32_t>(S.width), static_cast<int32_t>(S.height), 1 };
                     vkCmdBlitImage(H.cmd, input->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, S.image,
-                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &down, VK_FILTER_NEAREST);
+                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &down, VK_FILTER_LINEAR);
                     barrier(S.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                             VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
