@@ -155,6 +155,10 @@ object GameAssets {
 
     private external fun nativeGenerateGameArchive(rom: String, sourceDir: String, destDir: String): String?
 
+    /** 0..1 while generateGameArchive runs (-1 when not known). Any thread. */
+    fun extractProgress(): Float = runCatching { nativeExtractProgress() }.getOrDefault(-1f)
+    private external fun nativeExtractProgress(): Float
+
     init {
         // libSpaghettify.so carries both the game and the Torch extractor.
         System.loadLibrary("SDL2")

@@ -35,6 +35,12 @@
 #include <vector>
 
 #include "Companion.h"
+#include <algorithm>
+#include <atomic>
+#include <mutex>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/base_sink.h>
+#include <yaml-cpp/yaml.h>
 #include "ship/Context.h"
 #include "ship/window/Window.h"
 #include "ship/window/gui/Gui.h"
@@ -206,6 +212,58 @@ JNIEXPORT jboolean JNICALL Java_com_izzy_kart_MainActivity_isMenuOpen(JNIEnv*, j
  * APK by the launcher). Returns null on success, or a message describing what
  * went wrong.
  */
+} // extern "C"
+
+// Progress of the extraction, for the launcher's dialog: Torch reports nothing itself, but logs one
+// "- [TYPE] Processing <name>" line per asset; this sink counts them against the assets in the yamls.
+namespace {
+std::atomic<int> gAssetsDone{ 0 };
+std::atomic<int> gAssetsTotal{ 0 };
+
+class AssetCountSink : public spdlog::sinks::base_sink<std::mutex> {
+  protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+        std::string_view text(msg.payload.data(), msg.payload.size());
+        if (text.rfind("- [", 0) == 0 && text.find("] Processing ") != std::string_view::npos) {
+            gAssetsDone++;
+        }
+    }
+    void flush_() override {}
+};
+
+int CountAssets(const std::filesystem::path& yamls) {
+    int total = 0;
+    std::error_code error;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(yamls, error)) {
+        const auto ext = entry.path().extension();
+        if (!entry.is_regular_file() || (ext != ".yml" && ext != ".yaml")) {
+            continue;
+        }
+        try {
+            YAML::Node root = YAML::LoadFile(entry.path().string());
+            for (auto it = root.begin(); it != root.end(); ++it) {
+                if (it->first.as<std::string>().find(":config") == std::string::npos) {
+                    total++;
+                }
+            }
+        } catch (...) {
+        }
+    }
+    return total;
+}
+} // namespace
+
+extern "C" {
+
+// 0..1 while the extraction runs (-1: not known).
+JNIEXPORT jfloat JNICALL Java_com_izzy_kart_GameAssets_nativeExtractProgress(JNIEnv*, jobject) {
+    const int total = gAssetsTotal.load();
+    if (total <= 0) {
+        return -1.0f;
+    }
+    return std::min(0.99f, static_cast<float>(gAssetsDone.load()) / static_cast<float>(total));
+}
+
 JNIEXPORT jstring JNICALL Java_com_izzy_kart_GameAssets_nativeGenerateGameArchive(JNIEnv* env, jobject,
                                                                                  jstring jRomPath, jstring jSourceDir,
                                                                                  jstring jDestDir) {
@@ -239,6 +297,11 @@ JNIEXPORT jstring JNICALL Java_com_izzy_kart_GameAssets_nativeGenerateGameArchiv
     Companion::Instance = new Companion(std::move(romData), ArchiveType::O2R, false, sourceDir, destDir);
     Companion::Instance->SetAdditionalFiles({ "meta/mods.toml" });
 
+    gAssetsDone = 0;
+    gAssetsTotal = CountAssets(std::filesystem::path(sourceDir) / "yamls");
+    auto countSink = std::make_shared<AssetCountSink>();
+    spdlog::default_logger()->sinks().push_back(countSink);
+
     std::string extractError;
     try {
         Companion::Instance->Init(ExportType::Binary);
@@ -254,6 +317,9 @@ JNIEXPORT jstring JNICALL Java_com_izzy_kart_GameAssets_nativeGenerateGameArchiv
     // the launcher stays alive to let the user try again.
     delete Companion::Instance;
     Companion::Instance = nullptr;
+    auto& sinks = spdlog::default_logger()->sinks();
+    sinks.erase(std::remove(sinks.begin(), sinks.end(), countSink), sinks.end());
+    gAssetsTotal = 0;
 
     if (!extractError.empty()) {
         return fail(extractError);

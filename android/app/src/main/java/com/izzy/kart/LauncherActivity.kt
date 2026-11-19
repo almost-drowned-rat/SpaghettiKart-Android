@@ -156,11 +156,24 @@ class LauncherActivity : ComponentActivity() {
 
     private fun extractRom() {
         setBusy(true, getString(R.string.launcher_extracting))
+        // the share of the game's assets Torch has done so far, in the progress dialog
+        val ticker = object : Runnable {
+            override fun run() {
+                val f = GameAssets.extractProgress()
+                if (f >= 0f) {
+                    dialog.set("SpaghettiKart setup",
+                        "Extracting the game files from your ROM: ${(f * 100).toInt()} %. This happens once.", f)
+                }
+                dialog.postDelayed(this, 200)
+            }
+        }
+        dialog.post(ticker)
 
         thread(name = "mk64-extract") {
             val error = GameAssets.generateGameArchive(this)
 
             runOnUiThread {
+                dialog.removeCallbacks(ticker)
                 if (error == null) {
                     startGame()
                 } else {
