@@ -98,11 +98,13 @@ void PortMenu::AddSettings() {
 
     static bool isFullscreen = false;
 #ifndef __SWITCH__
+#ifndef __ANDROID__ // always full screen on Android
     AddWidget(path, "Toggle Fullscreen", WIDGET_CHECKBOX)
         .ValuePointer(&isFullscreen)
         .PreFunc([](WidgetInfo& info) { isFullscreen = Ship::Context::GetRawInstance()->GetWindow()->IsFullscreen(); })
         .Callback([](WidgetInfo& info) { Ship::Context::GetRawInstance()->GetWindow()->ToggleFullscreen(); })
         .Options(CheckboxOptions().Tooltip("Toggles Fullscreen On/Off."));
+#endif
 #endif
 
     AddWidget(path, "Startup Behaviour", WIDGET_CVAR_COMBOBOX)
@@ -287,12 +289,14 @@ void PortMenu::AddSettings() {
         .Options(CheckboxOptions()
                      .Tooltip("Removes tearing, but clamps your max FPS to your display's refresh rate.")
                      .DefaultValue(true));
+#ifndef __ANDROID__ // always full screen on Android
     AddWidget(path, "Windowed Fullscreen", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_SDL_WINDOWED_FULLSCREEN)
         .PreFunc([](WidgetInfo& info) {
             info.isHidden = mPortMenu->disabledMap.at(DISABLE_FOR_NO_WINDOWED_FULLSCREEN).active;
         })
         .Options(CheckboxOptions().Tooltip("Enables Windowed Fullscreen Mode."));
+#endif
     AddWidget(path, "Allow multiple ImGui windows", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENABLE_MULTI_VIEWPORTS)
         .PreFunc(
@@ -500,9 +504,11 @@ void PortMenu::AddDevTools() {
                      .DefaultIndex(Ship::SwitchProfiles::STOCK))
         .Callback([](WidgetInfo& info) { Ship::Switch::ApplyOverclock(); });
 #endif
+#ifndef __ANDROID__ // no separate windows on Android
     AddWidget(path, "Popout Menu", WIDGET_CVAR_CHECKBOX)
         .CVar("gSettings.Menu.Popout")
         .Options(CheckboxOptions().Tooltip("Changes the menu display from overlay to windowed."));
+#endif
     AddWidget(path, "Debug Mode", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnableDebugMode")
         .Callback([](WidgetInfo& info) {
