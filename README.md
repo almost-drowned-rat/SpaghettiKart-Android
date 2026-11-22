@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="android/icon_256.png" alt="SpaghettiKart for Android" width="160">
+</p>
+
 # SpaghettiKart — Android
 
 The Android version of [SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart), the Mario Kart 64 PC
