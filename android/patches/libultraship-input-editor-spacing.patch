@@ -1,0 +1,170 @@
+diff --git a/src/libultraship/window/gui/InputEditorWindow.cpp b/src/libultraship/window/gui/InputEditorWindow.cpp
+index 54948e1e..49bf8551 100644
+--- a/src/libultraship/window/gui/InputEditorWindow.cpp
++++ b/src/libultraship/window/gui/InputEditorWindow.cpp
+@@ -8,6 +8,18 @@
+ #include "libultraship/libultra/controller.h"
+ 
+ #define SCALE_IMGUI_SIZE(value) ((value / 13.0f) * ImGui::GetFontSize())
++// Android (handheld fork): a binding's parts (name, threshold, remove) as separate, finger-sized buttons with gaps.
++#ifdef __ANDROID__
++#define MAPPING_PART_GAP SCALE_IMGUI_SIZE(6.0f)
++#define MAPPING_ICON_PAD SCALE_IMGUI_SIZE(24.0f)
++#define MAPPING_GAP SCALE_IMGUI_SIZE(16.0f)
++#define MAPPING_ICON_ALIGN 0.5f // the icon in the middle of its (wider) button
++#else
++#define MAPPING_PART_GAP 0
++#define MAPPING_ICON_PAD SCALE_IMGUI_SIZE(10.0f)
++#define MAPPING_GAP SCALE_IMGUI_SIZE(4.0f)
++#define MAPPING_ICON_ALIGN 1.0f
++#endif
+ 
+ namespace LUS {
+ 
+@@ -195,7 +207,7 @@ void InputEditorWindow::DrawInputChip(const char* buttonName, ImVec4 color = CHI
+ }
+ 
+ void InputEditorWindow::DrawButtonLineAddMappingButton(uint8_t port, CONTROLLERBUTTONS_T bitmask) {
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     auto popupId = StringHelper::Sprintf("addButtonMappingPopup##%d-%d", port, bitmask);
+     if (ImGui::Button(StringHelper::Sprintf("%s###addButtonMappingButton%d-%d", ICON_FA_PLUS, port, bitmask).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), 0.0f))) {
+@@ -288,7 +300,7 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
+     }
+ 
+     ImGui::PopStyleVar();
+-    ImGui::SameLine(0, 0);
++    ImGui::SameLine(0, MAPPING_PART_GAP);
+ 
+     auto sdlAxisDirectionToButtonMapping = std::dynamic_pointer_cast<Ship::SDLAxisDirectionToButtonMapping>(mapping);
+     if (sdlAxisDirectionToButtonMapping != nullptr) {
+@@ -298,10 +310,10 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
+         GetButtonColorsForPhysicalDeviceType(mapping->GetPhysicalDeviceType(), buttonColor, buttonHoveredColor);
+         ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
+-        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+         auto popupId = StringHelper::Sprintf("editAxisThresholdPopup##%s", id.c_str());
+         if (ImGui::Button(StringHelper::Sprintf("%s###editAxisThresholdButton%s", ICON_FA_COG, id.c_str()).c_str(),
+-                          ImVec2(ImGui::CalcTextSize(ICON_FA_COG).x + SCALE_IMGUI_SIZE(10.0f), 0.0f))) {
++                          ImVec2(ImGui::CalcTextSize(ICON_FA_COG).x + MAPPING_ICON_PAD, 0.0f))) {
+             ImGui::OpenPopup(popupId.c_str());
+             OffsetMappingPopup();
+         }
+@@ -404,14 +416,14 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
+         }
+ 
+         ImGui::PopStyleVar();
+-        ImGui::SameLine(0, 0);
++        ImGui::SameLine(0, MAPPING_PART_GAP);
+     }
+ 
+     ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     if (ImGui::Button(StringHelper::Sprintf("%s###removeButtonMappingButton%s", ICON_FA_TIMES, id.c_str()).c_str(),
+-                      ImVec2(ImGui::CalcTextSize(ICON_FA_TIMES).x + SCALE_IMGUI_SIZE(10.0f), 0.0f))) {
++                      ImVec2(ImGui::CalcTextSize(ICON_FA_TIMES).x + MAPPING_ICON_PAD, 0.0f))) {
+         Ship::Context::GetRawInstance()
+             ->GetControlDeck()
+             ->GetControllerByPort(port)
+@@ -422,7 +434,7 @@ void InputEditorWindow::DrawButtonLineEditMappingButton(uint8_t port, CONTROLLER
+     ImGui::PopStyleColor();
+     ImGui::PopStyleVar();
+ 
+-    ImGui::SameLine(0, SCALE_IMGUI_SIZE(4.0f));
++    ImGui::SameLine(0, MAPPING_GAP);
+ }
+ 
+ void InputEditorWindow::DrawButtonLine(const char* buttonName, uint8_t port, CONTROLLERBUTTONS_T bitmask,
+@@ -438,7 +450,7 @@ void InputEditorWindow::DrawButtonLine(const char* buttonName, uint8_t port, CON
+ }
+ 
+ void InputEditorWindow::DrawStickDirectionLineAddMappingButton(uint8_t port, uint8_t stick, Ship::Direction direction) {
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     auto popupId = StringHelper::Sprintf("addStickDirectionMappingPopup##%d-%d-%d", port, stick, direction);
+     if (ImGui::Button(
+             StringHelper::Sprintf("%s###addStickDirectionMappingButton%d-%d-%d", ICON_FA_PLUS, port, stick, direction)
+@@ -569,13 +581,13 @@ void InputEditorWindow::DrawStickDirectionLineEditMappingButton(uint8_t port, ui
+     }
+ 
+     ImGui::PopStyleVar();
+-    ImGui::SameLine(0, 0);
++    ImGui::SameLine(0, MAPPING_PART_GAP);
+     ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonHoveredColor);
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     if (ImGui::Button(
+             StringHelper::Sprintf("%s###removeStickDirectionMappingButton%s", ICON_FA_TIMES, id.c_str()).c_str(),
+-            ImVec2(ImGui::CalcTextSize(ICON_FA_TIMES).x + SCALE_IMGUI_SIZE(10.0f), 0.0f))) {
++            ImVec2(ImGui::CalcTextSize(ICON_FA_TIMES).x + MAPPING_ICON_PAD, 0.0f))) {
+         if (stick == Ship::LEFT) {
+             Ship::Context::GetRawInstance()
+                 ->GetControlDeck()
+@@ -593,7 +605,7 @@ void InputEditorWindow::DrawStickDirectionLineEditMappingButton(uint8_t port, ui
+     ImGui::PopStyleColor();
+     ImGui::PopStyleColor();
+     ImGui::PopStyleVar();
+-    ImGui::SameLine(0, SCALE_IMGUI_SIZE(4.0f));
++    ImGui::SameLine(0, MAPPING_GAP);
+ }
+ 
+ void InputEditorWindow::DrawStickDirectionLine(const char* axisDirectionName, uint8_t port, uint8_t stick,
+@@ -793,7 +805,7 @@ void InputEditorWindow::UpdateStickDirectionToMappingIds(uint8_t port) {
+ 
+ void InputEditorWindow::DrawRemoveRumbleMappingButton(uint8_t port, std::string id) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     if (ImGui::Button(StringHelper::Sprintf("%s###removeRumbleMapping%s", ICON_FA_TIMES, id.c_str()).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {
+         Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetRumble()->ClearRumbleMapping(
+@@ -804,7 +816,7 @@ void InputEditorWindow::DrawRemoveRumbleMappingButton(uint8_t port, std::string
+ 
+ void InputEditorWindow::DrawAddRumbleMappingButton(uint8_t port) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     auto popupId = StringHelper::Sprintf("addRumbleMappingPopup##%d", port);
+     if (ImGui::Button(StringHelper::Sprintf("%s###addRumbleMapping%d", ICON_FA_PLUS, port).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {
+@@ -978,7 +990,7 @@ void InputEditorWindow::DrawRumbleSection(uint8_t port) {
+ 
+ void InputEditorWindow::DrawRemoveLEDMappingButton(uint8_t port, std::string id) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     if (ImGui::Button(StringHelper::Sprintf("%s###removeLEDMapping%s", ICON_FA_TIMES, id.c_str()).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {
+         Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetLED()->ClearLEDMapping(id);
+@@ -988,7 +1000,7 @@ void InputEditorWindow::DrawRemoveLEDMappingButton(uint8_t port, std::string id)
+ 
+ void InputEditorWindow::DrawAddLEDMappingButton(uint8_t port) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     auto popupId = StringHelper::Sprintf("addLEDMappingPopup##%d", port);
+     if (ImGui::Button(StringHelper::Sprintf("%s###addLEDMapping%d", ICON_FA_PLUS, port).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {
+@@ -1058,7 +1070,7 @@ void InputEditorWindow::DrawLEDSection(uint8_t port) {
+ 
+ void InputEditorWindow::DrawRemoveGyroMappingButton(uint8_t port, std::string id) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     if (ImGui::Button(StringHelper::Sprintf("%s###removeGyroMapping%s", ICON_FA_TIMES, id.c_str()).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {
+         Ship::Context::GetRawInstance()->GetControlDeck()->GetControllerByPort(port)->GetGyro()->ClearGyroMapping();
+@@ -1068,7 +1080,7 @@ void InputEditorWindow::DrawRemoveGyroMappingButton(uint8_t port, std::string id
+ 
+ void InputEditorWindow::DrawAddGyroMappingButton(uint8_t port) {
+     ImGui::SameLine();
+-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(1.0f, 0.5f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(MAPPING_ICON_ALIGN, 0.5f));
+     auto popupId = StringHelper::Sprintf("addGyroMappingPopup##%d", port);
+     if (ImGui::Button(StringHelper::Sprintf("%s###addGyroMapping%d", ICON_FA_PLUS, port).c_str(),
+                       ImVec2(SCALE_IMGUI_SIZE(20.0f), SCALE_IMGUI_SIZE(20.0f)))) {

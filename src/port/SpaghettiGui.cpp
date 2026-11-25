@@ -4,6 +4,11 @@
 #include <ship/window/Window.h>
 #include "ship/config/Config.h"
 #ifdef __ANDROID__
+namespace Ship {
+bool MenuCards_Back(); // ui/MenuCards.cpp
+}
+#endif
+#ifdef __ANDROID__
 #include <android/log.h>
 #endif
 
@@ -117,7 +122,9 @@ void SpaghettiGui::DrawMenu() {
                             ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false) && !menuWasBusy &&
                             !ImGui::IsAnyItemActive() &&
                             !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
-    const bool padToggle = backToggle || closeWithB;
+    // In the card menu B / Back go up a level first (list -> section column), then close (MenuCards.cpp).
+    const bool padToggle = (backToggle || closeWithB) &&
+                           !(GetMenu() && GetMenu()->IsVisible() && Ship::MenuCards_Back());
     if (padToggle) {
         __android_log_print(ANDROID_LOG_INFO, "SpaghettiKart", "menu: %s by %s",
                             GetMenuOrMenubarVisible() ? "closed" : "opened", backToggle ? "Back" : "B");

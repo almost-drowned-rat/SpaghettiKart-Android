@@ -360,6 +360,120 @@ void Android_OpenModsManager() {
     env->DeleteLocalRef(cls);
     env->DeleteLocalRef(activity);
 }
+// The card menu's view of the Back menu's pages (TouchControls' bridge* methods, MenuCards.cpp): the class is found
+// through the activity's class loader (FindClass on this thread only sees the system classes) and kept.
+static jclass TouchControlsClass(JNIEnv* env) {
+    static jclass cls = nullptr;
+    if (cls != nullptr) {
+        return cls;
+    }
+    jobject activity = static_cast<jobject>(SDL_AndroidGetActivity());
+    if (activity == nullptr) {
+        return nullptr;
+    }
+    jclass actCls = env->GetObjectClass(activity);
+    jmethodID getLoader = env->GetMethodID(actCls, "getClassLoader", "()Ljava/lang/ClassLoader;");
+    jobject loader = env->CallObjectMethod(activity, getLoader);
+    jclass loaderCls = env->FindClass("java/lang/ClassLoader");
+    jmethodID load = env->GetMethodID(loaderCls, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    jstring name = env->NewStringUTF("com.izzy.kart.TouchControls");
+    jobject found = env->CallObjectMethod(loader, load, name);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        found = nullptr;
+    }
+    if (found != nullptr) {
+        cls = static_cast<jclass>(env->NewGlobalRef(found));
+        env->DeleteLocalRef(found);
+    }
+    env->DeleteLocalRef(name);
+    env->DeleteLocalRef(loaderCls);
+    env->DeleteLocalRef(loader);
+    env->DeleteLocalRef(actCls);
+    env->DeleteLocalRef(activity);
+    return cls;
+}
+
+std::vector<std::string> Android_MenuPage(const char* id) {
+    std::vector<std::string> out;
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jclass cls = env ? TouchControlsClass(env) : nullptr;
+    if (cls == nullptr) {
+        return out;
+    }
+    static jmethodID m = env->GetStaticMethodID(cls, "bridgeItems", "(Ljava/lang/String;)[Ljava/lang/String;");
+    jstring jid = env->NewStringUTF(id);
+    auto arr = static_cast<jobjectArray>(env->CallStaticObjectMethod(cls, m, jid));
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        arr = nullptr;
+    }
+    if (arr != nullptr) {
+        const jsize n = env->GetArrayLength(arr);
+        for (jsize i = 0; i < n; i++) {
+            auto js = static_cast<jstring>(env->GetObjectArrayElement(arr, i));
+            const char* c = js ? env->GetStringUTFChars(js, nullptr) : nullptr;
+            out.emplace_back(c ? c : "");
+            if (c) env->ReleaseStringUTFChars(js, c);
+            if (js) env->DeleteLocalRef(js);
+        }
+        env->DeleteLocalRef(arr);
+    }
+    env->DeleteLocalRef(jid);
+    return out;
+}
+
+void Android_MenuAct(const char* id, int index, int op) {
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jclass cls = env ? TouchControlsClass(env) : nullptr;
+    if (cls == nullptr) {
+        return;
+    }
+    static jmethodID m = env->GetStaticMethodID(cls, "bridgeAct", "(Ljava/lang/String;II)V");
+    jstring jid = env->NewStringUTF(id);
+    env->CallStaticVoidMethod(cls, m, jid, index, op);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+    }
+    env->DeleteLocalRef(jid);
+}
+
+std::string Android_MenuTakePushed() {
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jclass cls = env ? TouchControlsClass(env) : nullptr;
+    if (cls == nullptr) {
+        return "";
+    }
+    static jmethodID m = env->GetStaticMethodID(cls, "bridgeTakePushed", "()Ljava/lang/String;");
+    auto js = static_cast<jstring>(env->CallStaticObjectMethod(cls, m));
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        return "";
+    }
+    std::string r;
+    if (js != nullptr) {
+        const char* c = env->GetStringUTFChars(js, nullptr);
+        r = c ? c : "";
+        env->ReleaseStringUTFChars(js, c);
+        env->DeleteLocalRef(js);
+    }
+    return r;
+}
+
+bool Android_MenuTakeClose() {
+    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
+    jclass cls = env ? TouchControlsClass(env) : nullptr;
+    if (cls == nullptr) {
+        return false;
+    }
+    static jmethodID m = env->GetStaticMethodID(cls, "bridgeTakeClose", "()Z");
+    const bool r = env->CallStaticBooleanMethod(cls, m);
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        return false;
+    }
+    return r;
+}
 } // namespace Ship
 
 // ---------------------------------------------------------------- FPS / frame time (the Back menu's readout)

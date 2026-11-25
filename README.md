@@ -35,25 +35,37 @@ and Vulkan. App ID `io.github.almostdrownedrat.spaghettikart` — it installs ne
   game's settings.
 - **Touch buttons** (N64 layout: stick, A, B, Z, L, R, START, C buttons; D-pad hidden by default), sent to the
   game as a controller, so they can be remapped like any pad. **Automatic** hides them while a controller is used
-  and a touch brings them back; **Always** and **Off** are the other modes. The **Mods** button (mods and saves
-  managers) shows while the menu is open.
+  and a touch brings them back; **Always** and **Off** are the other modes.
 - **Back** (the back gesture, the system bar's back button or a handheld's own Back key) opens the menu over the
-  game, fully usable with the controller (D-pad / stick, **A** choose, **B** back, holding the D-pad keeps moving):
-  - **Back to the game**
-  - **Touch controls** — mode, move and resize, size, single buttons, opacity, stick sensitivity, reset
-  - **Settings** — the game's own menu
-  - **Shaders** — RetroArch shaders (below)
-  - **FPS** — a small readout of the frame rate and frame time in the corner
-  - **Exit game**
+  game; Back again closes it.
 
-  With the game's menu open, Back (or **B**) closes it; the game stands still meanwhile. In the game's menu
-  **L / R** switch the section, **ZL / ZR** the tab, **Left / Right** change a slider by one step, and **Y** sets
-  the selected setting back to its default (every setting also has a reset button, orange when changed, and
-  **Reset page** resets a whole page). In the menu Back opens, **Y** does the same.
+## Menu
+
+One menu for everything — the game's settings and the Android ones — laid out the same in all of these N64 Android
+ports: the sections in a column on the left, the settings as cards on the right, grouped under headings and marked
+in the game's colour (red, as the game's own menu).
+
+- **Controller**: D-pad / stick move, **A** select (on a value **A** takes it, left / right change it, **A** or **B**
+  lets go), **B** one level back (from the section column it closes the menu), **Y** back to the default,
+  **L / R** the section. The hints are at the bottom right.
+- **Touch**: tap a card, swipe to scroll; on a value a tap on its left third steps back, on the rest forward.
+
+The sections:
+
+- **General** — Back to game, Exit game; Startup Behaviour, Controller pak screen
+- **Gameplay** — Enhancements, Rulesets, Cheats, Freecam
+- **Graphics** — picture, frame rate, quality, and the FPS readout
+- **Shaders** (below), **Audio**
+- **Controls** — the bindings and the touch buttons (mode, move and resize, size, single buttons, opacity, stick
+  sensitivity, reset)
+- **Developer**, **Mods** (mods and saves managers)
+
+The game stands still while the menu is open. Every setting of the engine's menu is in here; only options without a
+function on Android are hidden.
 
 ## Shaders
 
-Back > **Shaders** has everything in one place:
+The **Shaders** section has everything in one place:
 
 - **Shader** — On / Off (On takes the preset last used).
 - **Shader selection** — the folders and presets of the imported packs. None are shipped: **Import shader pack
@@ -80,7 +92,9 @@ of the game itself (also on the PC) belong to the [main project](https://github.
 
 ## Building
 
-Install the Android SDK, NDK and JDK 21, then build the APK in `android/` with `./gradlew assembleRelease`; the
+Install the Android SDK, NDK and JDK 21, apply the patches in [android/patches](android/patches) to the
+`libultraship` submodule (`git -C libultraship apply ../android/patches/libultraship-input-editor-spacing.patch`),
+then build the APK in `android/` with `./gradlew assembleRelease`; the
 Android sources are in `android/` and `src/port/android/`. The game files are not part of the build: the app makes
 them from the player's ROM on the device.
 

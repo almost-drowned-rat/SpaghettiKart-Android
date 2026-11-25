@@ -85,6 +85,8 @@ class MainActivity : SDLActivity() {
                 }
             })
         touch?.let { t -> shaders = ShaderLibrary(this, t, ShaderHost.TARGET).also { t.setShaderMenu(it) } }
+        // Back opens the game's card menu (MenuCards.cpp); its Touch controls / Shaders / FPS come from TouchControls
+        touch?.setCardMenu(true)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =

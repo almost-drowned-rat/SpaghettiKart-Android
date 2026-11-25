@@ -113,19 +113,24 @@ void PortMenu::AddSettings() {
             .ComboMap(introBehaviourOptions)
             .Tooltip("Select which scene or menu the game launch to."));
 
+#ifndef __ANDROID__ // Android: the card menu has the game's own accent colour, no theme choice
     AddWidget(path, "Menu Theme", WIDGET_CVAR_COMBOBOX)
         .CVar("gSettings.Menu.Theme")
         .Options(ComboboxOptions()
                      .Tooltip("Changes the Theme of the Menu Widgets.")
                      .ComboMap(menuThemeOptions)
                      .DefaultIndex(Colors::LightBlue));
+#endif
+#ifndef __ANDROID__ // the card menu is always full screen
     AddWidget(path, "Menu Extent", WIDGET_CVAR_COMBOBOX)
         .CVar("gSettings.Menu.Extent")
         .Options(ComboboxOptions()
                      .Tooltip("Changes the extent of the onscreen menu")
                      .ComboMap(menuExtentOptions)
                      .DefaultIndex(MenuExtent::Condensed));
+#endif
 
+#ifndef __ANDROID__ // the card menu is always full screen
     AddWidget(path, "Menu Scale: %.1fx", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar("gSettings.Menu.Scale")
         .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger("gSettings.Menu.Extent", 0); })
@@ -136,6 +141,7 @@ void PortMenu::AddSettings() {
                      .DefaultValue(1.0f)
                      .Format("%.1f")
                      .Step(0.1f));
+#endif
     AddWidget(path, "Controller pak screen", WIDGET_CVAR_CHECKBOX)
         .CVar("gControllerPakScreen")
         .Options(CheckboxOptions().Tooltip(
@@ -149,6 +155,7 @@ void PortMenu::AddSettings() {
             "This will disable game inputs while the menu is visible.\n\nD-pad to move between "
             "items, A to select, B to move up in scope."));
 #endif
+#ifndef __ANDROID__ // no mouse cursor on Android
     AddWidget(path, "Cursor Always Visible", WIDGET_CVAR_CHECKBOX)
         .CVar("gSettings.CursorVisibility")
         .Callback([](WidgetInfo& info) {
@@ -157,6 +164,8 @@ void PortMenu::AddSettings() {
         })
         .Options(CheckboxOptions().Tooltip("Makes the cursor always visible, even in full screen."));
 #endif
+#endif
+#ifndef __ANDROID__ // the card menu has no search
     AddWidget(path, "Search In Sidebar", WIDGET_CVAR_CHECKBOX)
         .CVar("gSettings.Menu.SidebarSearch")
         .Callback([](WidgetInfo& info) {
@@ -168,21 +177,28 @@ void PortMenu::AddSettings() {
         })
         .Options(CheckboxOptions().Tooltip(
             "Displays the Search menu as a sidebar entry in Settings instead of in the header."));
+#endif
+#ifndef __ANDROID__ // the card menu has no search
     AddWidget(path, "Search Input Autofocus", WIDGET_CVAR_CHECKBOX)
         .CVar("gSettings.Menu.SearchAutofocus")
         .Options(CheckboxOptions().Tooltip(
             "Search input box gets autofocus when visible. Does not affect using other widgets."));
+#endif
+#ifndef __ANDROID__ // a keyboard hotkey
     AddWidget(path, "Alt Assets Tab hotkey", WIDGET_CVAR_CHECKBOX)
         .CVar("gEnhancements.Mods.AlternateAssetsHotkey")
         .Options(
             CheckboxOptions().Tooltip("Allows pressing the Tab key to toggle alternate assets").DefaultValue(true));
+#endif
 #ifndef __SWITCH__
+#ifndef __ANDROID__ // no file browser to open on Android
     AddWidget(path, "Open App Files Folder", WIDGET_BUTTON)
         .Callback([](WidgetInfo& info) {
             std::string filesPath = Ship::Context::GetRawInstance()->GetAppDirectoryPath();
             SDL_OpenURL(std::string("file:///" + std::filesystem::absolute(filesPath).string()).c_str());
         })
         .Options(ButtonOptions().Tooltip("Opens the folder that contains the save and mods folders, etc."));
+#endif
 #endif
 
     // Audio Settings
@@ -212,7 +228,9 @@ void PortMenu::AddSettings() {
                      .Tooltip("Adjust the environment volume.")
                      .IsPercentage()
                      .Format("%.0f%%"));
+#ifndef __ANDROID__ // one audio API on Android (SDL)
     AddWidget(path, "Audio API", WIDGET_AUDIO_BACKEND);
+#endif
 
     // Graphics Settings
     static int32_t maxFps = MAX_FPS;
@@ -221,7 +239,9 @@ void PortMenu::AddSettings() {
         "FPS than your monitor's refresh rate will waste resources, and might give a worse result.";
     path.sidebarName = "Graphics";
     AddSidebarEntry("Settings", "Graphics", 3);
+#ifndef __ANDROID__ // one renderer on Android (OpenGL ES)
     AddWidget(path, "Renderer API (Needs reload)", WIDGET_VIDEO_BACKEND);
+#endif
 
     AddWidget(path, "Internal Resolution: %.0f%%", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar(CVAR_INTERNAL_RESOLUTION)
@@ -297,6 +317,7 @@ void PortMenu::AddSettings() {
         })
         .Options(CheckboxOptions().Tooltip("Enables Windowed Fullscreen Mode."));
 #endif
+#ifndef __ANDROID__ // no separate windows on Android
     AddWidget(path, "Allow multiple ImGui windows", WIDGET_CVAR_CHECKBOX)
         .CVar(CVAR_ENABLE_MULTI_VIEWPORTS)
         .PreFunc(
@@ -304,6 +325,7 @@ void PortMenu::AddSettings() {
         .Options(CheckboxOptions()
                      .Tooltip("Allows multiple ImGui windows to be opened at once (Does not effect the game or the splitscreen modes). Requires a reload to take effect.")
                      .DefaultValue(true));
+#endif
     AddWidget(path, "Texture Filter (Needs reload)", WIDGET_CVAR_COMBOBOX)
         .CVar(CVAR_TEXTURE_FILTER)
         .Options(ComboboxOptions()
@@ -313,6 +335,7 @@ void PortMenu::AddSettings() {
 
     path.sidebarName = "Controls";
     AddSidebarEntry("Settings", "Controls", 1);
+#ifndef __ANDROID__ // PC advice (Steam, other controllers on the computer)
     AddWidget(path,
               "This interface can be a little daunting. Please bear with us as we work to improve the experience "
               "and address some known issues.\n"
@@ -327,6 +350,7 @@ void PortMenu::AddSettings() {
               "any other external input software. Alternatively, test a different controller to determine if "
               "it's a compatibility issue.\n",
               WIDGET_TEXT);
+#endif
     AddWidget(path, "Bindings", WIDGET_SEPARATOR_TEXT);
     AddWidget(path, "Popout Bindings Window", WIDGET_WINDOW_BUTTON)
         .CVar(CVAR_CONTROLLER_CONFIGURATION_WINDOW_OPEN)

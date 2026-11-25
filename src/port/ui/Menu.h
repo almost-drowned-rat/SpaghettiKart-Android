@@ -37,6 +37,9 @@ class Menu : public GuiWindow {
     void MenuDrawItem(WidgetInfo& widget, uint32_t width, UIWidgets::Colors menuThemeIndex);
     void AddMenuEntry(std::string entryName, const char* entryCvar);
     std::unordered_map<uint32_t, disabledInfo>& GetDisabledMap();
+#ifdef __ANDROID__
+    void DrawCardMenu(); // MenuCards.cpp: the N64 ports' Android menu (sections left, a list of cards right)
+#endif
 
   protected:
     ImVec2 mOriginalSize;

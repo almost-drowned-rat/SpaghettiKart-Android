@@ -711,6 +711,10 @@ void Menu::DrawElement() {
     for (auto& [reason, info] : disabledMap) {
         info.active = info.evaluation(info);
     }
+#ifdef __ANDROID__
+    DrawCardMenu();
+    return;
+#endif
     auto menuThemeIndex = static_cast<UIWidgets::Colors>(CVarGetInteger("gSettings.Menu.Theme", defaultThemeIndex));
 
     windowHeight = ImGui::GetMainViewport()->WorkSize.y;

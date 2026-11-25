@@ -685,7 +685,9 @@ void present(AImageReader* reader) {
             VkCommandBufferBeginInfo bi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
             bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             vkBeginCommandBuffer(H.cmd, &bi);
-            if (H.chain != nullptr) {
+            // While the engine's menu is open the frame goes to the screen as it is: the menu stays sharp (it is
+            // drawn into the frame, so a CRT shader would blur it).
+            if (H.chain != nullptr && !engineMenuOpen) {
                 // Shader Resolution: the frame scaled down (nearest) to the lines the shader works on
                 const int lines = engineMenuOpen ? 0 : shaderLines.load();
                 const bool scale = lines > 0 && static_cast<uint32_t>(lines) < input->height &&

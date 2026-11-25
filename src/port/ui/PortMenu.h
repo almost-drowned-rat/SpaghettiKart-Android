@@ -33,6 +33,14 @@ static const std::unordered_map<int32_t, const char*> menuThemeOptions = {
     { UIWidgets::Colors::DarkGray, "Dark Gray" },
 };
 
+#ifdef __ANDROID__
+// The card menu's accent colours (MenuCards.cpp kAccents, same order); 0 = the game's own.
+static const std::unordered_map<int32_t, const char*> menuAccentOptions = {
+    { 0, "Tomato" }, { 1, "Orange" }, { 2, "Gold" },   { 3, "Green" }, { 4, "Teal" },
+    { 5, "Blue" },   { 6, "Violet" }, { 7, "Pink" },   { 8, "Gray" },
+};
+#endif
+
 static const std::unordered_map<int32_t, const char*> introBehaviourOptions = {
     { 0, "Both" },
     { 1, "Authentic" },
